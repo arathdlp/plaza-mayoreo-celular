@@ -48,6 +48,14 @@ comment on column public.productos.precio is 'Precio de venta al público';
 create index if not exists productos_categoria_idx on public.productos (categoria);
 create index if not exists productos_activo_idx on public.productos (activo) where activo = true;
 
+-- Campos opcionales para ficha de producto (ejecutar si la tabla ya existía)
+alter table public.productos
+  add column if not exists descripcion text,
+  add column if not exists stock integer check (stock is null or stock >= 0);
+
+comment on column public.productos.descripcion is 'Descripción larga para la página de detalle';
+comment on column public.productos.stock is 'Unidades disponibles; null = no se controla stock';
+
 -- ---------------------------------------------------------------------------
 -- 2. clientes
 -- id = auth.users.id al registrarse con Supabase Auth (recomendado)
