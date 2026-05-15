@@ -9,16 +9,23 @@ export const CATEGORIAS_PRODUCTO = [
 
 export type CategoriaProducto = (typeof CATEGORIAS_PRODUCTO)[number];
 
-/** Para igualdad exacta (case-sensitive) a pesar de NBSP / BOM / caracteres invisibles típicos de CSV/Excel. */
+/** Comparación exacta en mayúsculas tras canonicalizar espacios Unicode / formato invisible (CSV/Excel). */
 export function categoriasEquivalentes(a: string, b: string): boolean {
   return canonicalizarCategoria(a) === canonicalizarCategoria(b);
 }
 
+/**
+ * Igualdad humana con la BD (mayúsculas intactas): NFC + cualquier separador Unicode (Zs)
+ * como espacio normal + quitar formato invisible + colapsar espacios internos.
+ */
 export function canonicalizarCategoria(raw: string): string {
+  if (!raw) return "";
   return raw
-    .replace(/\u00a0/g, " ")
-    .replace(/[\u200b-\u200d\ufeff\u2060]/g, "")
-    .trim();
+    .normalize("NFC")
+    .replace(/[\u200b-\u200d\ufeff\u2060\u034f]/g, "")
+    .replace(/\p{Z}+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export type Producto = {

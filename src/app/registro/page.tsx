@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import RegistroForm from "./RegistroForm";
 
@@ -7,5 +8,15 @@ export const metadata: Metadata = {
 };
 
 export default function RegistroPage() {
-  return <RegistroForm />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-black via-[#0a1628] to-[#0c2848] text-white/50">
+          Cargando…
+        </div>
+      }
+    >
+      <RegistroForm />
+    </Suspense>
+  );
 }

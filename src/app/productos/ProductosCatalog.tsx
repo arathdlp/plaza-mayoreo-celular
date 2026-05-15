@@ -1,7 +1,12 @@
 "use client";
 
+import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
 import { formatoPesos } from "@/lib/format";
-import { categoriasEquivalentes, type CategoriaFiltro, type Producto } from "@/types/producto";
+import {
+  categoriasEquivalentes,
+  type CategoriaFiltro,
+  type Producto,
+} from "@/types/producto";
 import Image from "next/image";
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
@@ -178,12 +183,14 @@ export default function ProductosCatalog({ productos }: ProductosCatalogProps) {
                   <p className="mt-3 text-xl font-semibold tracking-tight text-white">
                     {formatoPesos(p.precio)}
                   </p>
-                  <button
-                    type="button"
-                    className="pointer-events-auto relative z-[2] mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0066FF] text-sm font-semibold text-white shadow-md shadow-[#0066FF]/20 transition-all duration-300 hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97]"
-                  >
-                    Agregar al carrito
-                  </button>
+                  <AgregarAlCarritoButton
+                    producto={{
+                      id: p.id,
+                      nombre: p.nombre,
+                      precio: p.precio,
+                      imagen_url: p.imagen_url,
+                    }}
+                  />
                 </div>
               </article>
             </li>

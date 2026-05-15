@@ -1,7 +1,18 @@
 "use client";
 
+import { useCarrito } from "@/hooks/useCarrito";
 import Link from "next/link";
 import { useState } from "react";
+
+function CarritoBadge() {
+  const { totalItems, listo } = useCarrito();
+  if (!listo || totalItems <= 0) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#0066FF] px-[5px] text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
+      {totalItems > 99 ? "99+" : totalItems}
+    </span>
+  );
+}
 
 const nav = [
   { href: "/#inicio", label: "Inicio" },
@@ -92,10 +103,11 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/carrito"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 transition-all duration-300 ease-out hover:bg-zinc-100 hover:text-[#0066FF] active:scale-95"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 transition-all duration-300 ease-out hover:bg-zinc-100 hover:text-[#0066FF] active:scale-95"
             aria-label="Carrito de compras"
           >
             <CartIcon />
+            <CarritoBadge />
           </Link>
           <Link
             href="/login"
@@ -138,6 +150,13 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+          <Link
+            href="/carrito"
+            className="rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-[#0066FF]"
+            onClick={() => setOpen(false)}
+          >
+            Carrito
+          </Link>
           <Link
             href="/login"
             className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0066FF] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-out hover:bg-[#3385ff] active:scale-[0.97]"

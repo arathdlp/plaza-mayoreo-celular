@@ -1,3 +1,4 @@
+import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
 import { formatoPesos } from "@/lib/format";
 import type { Producto } from "@/types/producto";
 import Image from "next/image";
@@ -136,12 +137,15 @@ export default function ProductoDetalleView({ producto }: ProductoDetalleViewPro
               </div>
             ) : null}
 
-            <button
-              type="button"
-              className="mt-10 inline-flex h-14 w-full items-center justify-center rounded-full bg-[#0066FF] text-base font-semibold text-white shadow-lg shadow-[#0066FF]/30 transition-all duration-300 hover:bg-[#3385ff] hover:shadow-xl active:scale-[0.97] sm:w-auto sm:min-w-[280px]"
-            >
-              Agregar al carrito
-            </button>
+            <AgregarAlCarritoButton
+              size="lg"
+              producto={{
+                id: producto.id,
+                nombre: producto.nombre,
+                precio: producto.precio,
+                imagen_url: producto.imagen_url,
+              }}
+            />
           </div>
         </div>
 

@@ -94,6 +94,20 @@ create index if not exists pedidos_cliente_id_idx on public.pedidos (cliente_id)
 create index if not exists pedidos_estado_idx on public.pedidos (estado);
 create index if not exists pedidos_created_at_idx on public.pedidos (created_at desc);
 
+-- Checkout: método de pago (ejecutar en proyectos ya creados)
+alter table public.pedidos
+  add column if not exists metodo_pago text default 'contra_entrega';
+
+update public.pedidos set metodo_pago = 'contra_entrega' where metodo_pago is null;
+
+alter table public.pedidos drop constraint if exists pedidos_metodo_pago_check;
+alter table public.pedidos
+  add constraint pedidos_metodo_pago_check check (
+    metodo_pago in ('mercado_pago', 'contra_entrega')
+  );
+
+comment on column public.pedidos.metodo_pago is 'mercado_pago | contra_entrega';
+
 -- ---------------------------------------------------------------------------
 -- 4. pedido_items
 -- ---------------------------------------------------------------------------

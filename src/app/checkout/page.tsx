@@ -1,18 +1,18 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import CarritoVista from "./CarritoVista";
+import CheckoutCliente from "./CheckoutCliente";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Carrito | Plaza Mayoreo del Celular",
-  description: "Tu carrito de compras.",
+  title: "Checkout | Plaza Mayoreo del Celular",
+  description: "Finaliza tu compra.",
 };
 
-export default function CarritoPage() {
+export default function CheckoutPage() {
   return (
     <>
       <Header />
-      <CarritoVista />
+      <CheckoutCliente />
       <Footer />
     </>
   );

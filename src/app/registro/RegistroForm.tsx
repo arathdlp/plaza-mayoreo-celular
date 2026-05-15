@@ -3,11 +3,18 @@
 import { createClient } from "@/lib/supabase/client";
 import AuthShell, { authFieldClass, authLabelClass } from "@/components/auth/AuthShell";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+
+function safeNext(path: string | null) {
+  if (!path?.startsWith("/") || path.startsWith("//")) return "/dashboard";
+  return path;
+}
 
 export default function RegistroForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -47,7 +54,7 @@ export default function RegistroForm() {
       return;
     }
     if (data.session) {
-      router.push("/dashboard");
+      router.push(next);
       router.refresh();
       return;
     }
@@ -166,7 +173,7 @@ export default function RegistroForm() {
       <p className="mt-8 text-center text-sm text-white/55">
         ¿Ya tienes cuenta?{" "}
         <Link
-          href="/login"
+          href={next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"}
           className="font-semibold text-[#0066FF] transition-colors duration-300 hover:text-[#4d94ff]"
         >
           Inicia sesión
