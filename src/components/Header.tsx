@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 
 const nav = [
-  { href: "#inicio", label: "Inicio" },
-  { href: "#productos", label: "Productos" },
-  { href: "#servicios", label: "Servicios" },
-  { href: "#capacitaciones", label: "Capacitaciones" },
-  { href: "#contacto", label: "Contacto" },
+  { href: "/#inicio", label: "Inicio" },
+  { href: "/productos", label: "Productos" },
+  { href: "/#servicios", label: "Servicios" },
+  { href: "/#capacitaciones", label: "Capacitaciones" },
+  { href: "/#contacto", label: "Contacto" },
 ] as const;
 
 function CartIcon({ className }: { className?: string }) {
@@ -68,7 +68,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md transition-[box-shadow] duration-300 supports-[backdrop-filter]:bg-white/75">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
-          href="#inicio"
+          href="/#inicio"
           className="shrink-0 text-sm font-semibold tracking-tight text-black transition-opacity hover:opacity-80 sm:text-base"
         >
           Plaza Mayoreo del Celular
@@ -82,7 +82,7 @@ export default function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-medium text-zinc-600 transition-colors duration-200 hover:text-[#0066FF]"
+              className="text-sm font-medium text-zinc-600 transition-colors duration-300 ease-out hover:text-[#0066FF]"
             >
               {item.label}
             </Link>
@@ -91,15 +91,15 @@ export default function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
-            href="#carrito"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 transition-all duration-200 hover:bg-zinc-100 hover:text-[#0066FF]"
+            href="/carrito"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 transition-all duration-300 ease-out hover:bg-zinc-100 hover:text-[#0066FF] active:scale-95"
             aria-label="Carrito de compras"
           >
             <CartIcon />
           </Link>
           <Link
-            href="#login"
-            className="hidden rounded-full bg-[#0066FF] px-4 py-2 text-sm font-medium text-white transition-transform duration-200 hover:bg-[#0052cc] active:scale-[0.98] sm:inline-flex"
+            href="/login"
+            className="hidden rounded-full bg-[#0066FF] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#0066FF]/20 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97] sm:inline-flex"
           >
             Iniciar Sesión
           </Link>
@@ -139,8 +139,8 @@ export default function Header() {
             </Link>
           ))}
           <Link
-            href="#login"
-            className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0066FF] px-4 py-2.5 text-sm font-medium text-white transition-transform active:scale-[0.98]"
+            href="/login"
+            className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0066FF] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-out hover:bg-[#3385ff] active:scale-[0.97]"
             onClick={() => setOpen(false)}
           >
             Iniciar Sesión

@@ -1,3 +1,7 @@
+"use client";
+
+import ScrollReveal from "@/components/ScrollReveal";
+
 function IconMapPin() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
@@ -82,22 +86,35 @@ const items = [
 
 export default function Features() {
   return (
-    <section className="border-t border-zinc-100 bg-zinc-50 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-      <div className="mx-auto max-w-7xl">
-        <h2 className="text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-          Por qué elegirnos
-        </h2>
-        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((item) => (
-            <li
-              key={item.title}
-              className="rounded-2xl border border-zinc-200/80 bg-white p-6 transition-transform duration-300 hover:-translate-y-0.5"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0066FF]/8">
-                {item.icon}
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-black">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">{item.text}</p>
+    <section className="relative overflow-hidden border-t border-white/5 bg-gradient-to-b from-[#050508] via-[#0c1020] to-[#06060a] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,102,255,0.2), transparent 55%)",
+        }}
+      />
+      <div className="relative mx-auto max-w-7xl">
+        <ScrollReveal>
+          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Por qué elegirnos
+          </h2>
+          <p className="mt-3 max-w-xl text-lg font-normal text-white/55">
+            La experiencia que esperas de un partner tecnológico serio.
+          </p>
+        </ScrollReveal>
+        <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item, index) => (
+            <li key={item.title} className="h-full">
+              <ScrollReveal delayMs={index * 75} className="h-full">
+                <div className="group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-300 ease-out hover:border-[#0066FF]/35 hover:bg-white/[0.09] hover:shadow-[0_16px_48px_-12px_rgba(0,102,255,0.15)]">
+                  <div className="pmc-icon-animate flex h-12 w-12 items-center justify-center rounded-xl bg-[#0066FF]/15 ring-1 ring-[#0066FF]/20 transition-transform duration-300 group-hover:scale-110 group-hover:ring-[#0066FF]/40">
+                    {item.icon}
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold leading-snug text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm font-normal leading-relaxed text-white/60">{item.text}</p>
+                </div>
+              </ScrollReveal>
             </li>
           ))}
         </ul>

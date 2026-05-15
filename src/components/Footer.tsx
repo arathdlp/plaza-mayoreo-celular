@@ -1,18 +1,18 @@
 import Link from "next/link";
 
 const quickLinks = [
-  { href: "#inicio", label: "Inicio" },
-  { href: "#productos", label: "Productos" },
-  { href: "#servicios", label: "Servicios" },
-  { href: "#capacitaciones", label: "Capacitaciones" },
-  { href: "#contacto", label: "Contacto" },
+  { href: "/#inicio", label: "Inicio" },
+  { href: "/productos", label: "Productos" },
+  { href: "/#servicios", label: "Servicios" },
+  { href: "/#capacitaciones", label: "Capacitaciones" },
+  { href: "/#contacto", label: "Contacto" },
 ] as const;
 
 function SocialIcon({ children, label, href }: { children: React.ReactNode; label: string; href: string }) {
   return (
     <a
       href={href}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700 text-zinc-300 transition-colors duration-200 hover:border-[#0066FF] hover:text-white"
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700/80 bg-zinc-900/50 text-zinc-400 transition-all duration-300 ease-out hover:border-[#0066FF] hover:bg-[#0066FF]/10 hover:text-[#0066FF] hover:shadow-[0_0_20px_-4px_rgba(0,102,255,0.5)]"
       aria-label={label}
       target="_blank"
       rel="noopener noreferrer"
@@ -25,12 +25,14 @@ function SocialIcon({ children, label, href }: { children: React.ReactNode; labe
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer id="contacto" className="scroll-mt-24 border-t border-zinc-800 bg-black text-white">
+    <footer id="contacto" className="scroll-mt-24 bg-black text-zinc-400">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-3">
           <div>
-            <p className="text-lg font-semibold tracking-tight">Plaza Mayoreo del Celular</p>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+            <p className="text-lg font-semibold tracking-tight text-zinc-100">
+              Plaza Mayoreo del Celular
+            </p>
+            <p className="mt-3 text-sm font-normal leading-relaxed text-zinc-400">
               Tu aliado en refacciones y servicio técnico en Morelia, Michoacán.
             </p>
             <div className="mt-6 flex gap-3">
@@ -52,25 +54,31 @@ export default function Footer() {
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500">
               Contacto
             </p>
-            <ul className="mt-4 space-y-2 text-sm text-zinc-400">
+            <ul className="mt-4 space-y-2 text-sm font-normal text-zinc-400">
               <li>Morelia, Michoacán</li>
               <li>
-                <a href="tel:+524431234567" className="transition-colors hover:text-white">
+                <a
+                  href="tel:+524431234567"
+                  className="transition-colors duration-300 hover:text-[#0066FF]"
+                >
                   +52 443 123 4567
                 </a>
               </li>
               <li>
-                <a href="mailto:contacto@plazamayoreodelcelular.mx" className="transition-colors hover:text-white">
+                <a
+                  href="mailto:contacto@plazamayoreodelcelular.mx"
+                  className="transition-colors duration-300 hover:text-[#0066FF]"
+                >
                   contacto@plazamayoreodelcelular.mx
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500">
               Enlaces rápidos
             </p>
             <ul className="mt-4 space-y-2">
@@ -78,7 +86,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-sm text-zinc-400 transition-colors hover:text-white"
+                    className="text-sm font-normal text-zinc-400 transition-colors duration-300 hover:text-[#0066FF]"
                   >
                     {l.label}
                   </Link>
@@ -87,7 +95,7 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        <div className="mt-12 border-t border-zinc-800 pt-8 text-center text-xs text-zinc-500">
+        <div className="mt-12 border-t border-zinc-800/80 pt-8 text-center text-xs font-normal text-zinc-500">
           © {year} Plaza Mayoreo del Celular. Todos los derechos reservados.
         </div>
       </div>
