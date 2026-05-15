@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieRow = { name: string; value: string; options: CookieOptions };
 
-const PROTECTED_PREFIXES = ["/dashboard", "/pedidos"] as const;
+const PROTECTED_PREFIXES = ["/dashboard", "/pedidos", "/admin"] as const;
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some(

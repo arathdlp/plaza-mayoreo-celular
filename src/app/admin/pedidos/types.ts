@@ -1,0 +1,10 @@
+export type PedidoAdminRow = {
+  id: number;
+  cliente_id: string;
+  created_at: string;
+  total: number;
+  estado: string;
+  metodo_pago: string | null;
+  clienteNombre: string;
+  clienteEmail: string;
+};

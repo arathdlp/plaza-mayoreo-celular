@@ -73,6 +73,11 @@ comment on table public.clientes is 'Perfil de cliente vinculado a Supabase Auth
 
 create index if not exists clientes_email_idx on public.clientes (email);
 
+alter table public.clientes
+  add column if not exists is_admin boolean not null default false;
+
+comment on column public.clientes.is_admin is 'Acceso al panel /admin (RLS app_user_is_admin)';
+
 -- ---------------------------------------------------------------------------
 -- 3. pedidos
 -- ---------------------------------------------------------------------------
@@ -169,12 +174,46 @@ alter table public.pedidos enable row level security;
 alter table public.pedido_items enable row level security;
 alter table public.envios enable row level security;
 
--- Productos: lectura pública de activos; escritura solo service_role / admin (ajustar según roles)
+-- Admin: rol por fila en clientes.is_admin (usado en políticas RLS)
+create or replace function public.app_user_is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select c.is_admin from public.clientes c where c.id = auth.uid()),
+    false
+  );
+$$;
+
+comment on function public.app_user_is_admin() is 'true si auth.uid() tiene clientes.is_admin';
+
+grant execute on function public.app_user_is_admin() to authenticated;
+
+-- Productos: lectura pública de activos; admins ven/editan todo
+drop policy if exists "productos_select_activos" on public.productos;
 create policy "productos_select_activos"
   on public.productos
   for select
   to anon, authenticated
-  using (activo = true);
+  using (activo = true or public.app_user_is_admin());
+
+drop policy if exists "productos_admin_insert" on public.productos;
+create policy "productos_admin_insert"
+  on public.productos
+  for insert
+  to authenticated
+  with check (public.app_user_is_admin());
+
+drop policy if exists "productos_admin_update" on public.productos;
+create policy "productos_admin_update"
+  on public.productos
+  for update
+  to authenticated
+  using (public.app_user_is_admin())
+  with check (public.app_user_is_admin());
 
 -- Clientes: cada usuario ve y edita solo su fila
 create policy "clientes_select_own"
@@ -196,6 +235,13 @@ create policy "clientes_update_own"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop policy if exists "clientes_select_admin" on public.clientes;
+create policy "clientes_select_admin"
+  on public.clientes
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
+
 -- Pedidos: el cliente solo ve los suyos
 create policy "pedidos_select_own"
   on public.pedidos
@@ -208,6 +254,21 @@ create policy "pedidos_insert_own"
   for insert
   to authenticated
   with check (auth.uid() = cliente_id);
+
+drop policy if exists "pedidos_select_admin" on public.pedidos;
+create policy "pedidos_select_admin"
+  on public.pedidos
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
+
+drop policy if exists "pedidos_update_admin" on public.pedidos;
+create policy "pedidos_update_admin"
+  on public.pedidos
+  for update
+  to authenticated
+  using (public.app_user_is_admin())
+  with check (public.app_user_is_admin());
 
 -- Items: visibles si el pedido pertenece al usuario
 create policy "pedido_items_select_own"
@@ -235,6 +296,13 @@ create policy "pedido_items_insert_own"
         and p.cliente_id = auth.uid()
     )
   );
+
+drop policy if exists "pedido_items_select_admin" on public.pedido_items;
+create policy "pedido_items_select_admin"
+  on public.pedido_items
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
 
 -- Envíos: lectura si el pedido es del usuario
 create policy "envios_select_own"
