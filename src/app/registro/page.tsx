@@ -1,11 +1,14 @@
-import { Suspense } from "react";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import RegistroForm from "./RegistroForm";
 
-export const metadata: Metadata = {
-  title: "Registro | Plaza Mayoreo del Celular",
-  description: "Crea tu cuenta en Plaza Mayoreo del Celular.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Crear cuenta",
+  description: "Regístrate para comprar, guardar pedidos y recibir soporte en Plaza Mayoreo del Celular.",
+  path: "/registro",
+  noindex: true,
+});
 
 export default function RegistroPage() {
   return (

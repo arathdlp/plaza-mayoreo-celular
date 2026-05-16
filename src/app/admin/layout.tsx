@@ -1,10 +1,19 @@
 import Header from "@/components/Header";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getAdminSupabase } from "./_lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Administración",
+  description: "Gestión de catálogo y pedidos (solo personal autorizado).",
+  path: "/admin",
+  noindex: true,
+});
 
 const navLink =
   "rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white/85 transition-all hover:border-[#0066FF]/45 hover:bg-[#0066FF]/12 hover:text-white";

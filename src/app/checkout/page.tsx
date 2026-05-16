@@ -1,12 +1,14 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import CheckoutCliente from "./CheckoutCliente";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import CheckoutCliente from "./CheckoutCliente";
 
-export const metadata: Metadata = {
-  title: "Checkout | Plaza Mayoreo del Celular",
-  description: "Finaliza tu compra.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Checkout",
+  description: "Confirma tu pedido, elige método de pago y datos de entrega en Morelia.",
+  path: "/checkout",
+});
 
 export default function CheckoutPage() {
   return (

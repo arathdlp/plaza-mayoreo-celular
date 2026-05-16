@@ -1,11 +1,14 @@
-import { Suspense } from "react";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 
-export const metadata: Metadata = {
-  title: "Iniciar sesión | Plaza Mayoreo del Celular",
-  description: "Accede a tu cuenta en Plaza Mayoreo del Celular.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Iniciar sesión",
+  description: "Accede a tu cuenta para ver pedidos, checkout y historial en Plaza Mayoreo del Celular.",
+  path: "/login",
+  noindex: true,
+});
 
 export default function LoginPage() {
   return (

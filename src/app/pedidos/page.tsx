@@ -1,15 +1,18 @@
 import PrivateChrome from "@/components/auth/PrivateChrome";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { formatoPesos } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Pedidos | Plaza Mayoreo del Celular",
-  description: "Historial de tus pedidos.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Mis pedidos",
+  description: "Consulta el estado, total y detalle de tus compras en Plaza Mayoreo del Celular.",
+  path: "/pedidos",
+  noindex: true,
+});
 
 type ProductoNombre = { nombre: string };
 

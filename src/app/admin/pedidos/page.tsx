@@ -1,13 +1,16 @@
 import { getAdminSupabase } from "@/app/admin/_lib/supabase-admin";
 import PedidosAdminCliente from "@/app/admin/pedidos/PedidosAdminCliente";
 import type { PedidoAdminRow } from "@/app/admin/pedidos/types";
-import { redirect } from "next/navigation";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Admin · Pedidos | Plaza Mayoreo del Celular",
-  description: "Gestión de pedidos.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Admin · Pedidos",
+  description: "Listado global de pedidos y cambio de estado operativo.",
+  path: "/admin/pedidos",
+  noindex: true,
+});
 
 function num(v: number | string): number {
   return typeof v === "string" ? parseFloat(v) : v;

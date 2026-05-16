@@ -80,7 +80,7 @@ export default function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/#inicio"
-          className="shrink-0 text-sm font-semibold tracking-tight text-black transition-opacity hover:opacity-80 sm:text-base"
+          className="max-w-[11rem] shrink-0 truncate text-sm font-semibold tracking-tight text-black transition-opacity hover:opacity-80 sm:max-w-none sm:text-base"
         >
           Plaza Mayoreo del Celular
         </Link>

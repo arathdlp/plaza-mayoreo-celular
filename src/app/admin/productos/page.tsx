@@ -1,13 +1,16 @@
 import { getAdminSupabase } from "@/app/admin/_lib/supabase-admin";
 import ProductosAdminCliente from "@/app/admin/productos/ProductosAdminCliente";
 import type { ProductoAdminRow } from "@/app/admin/productos/types";
-import { redirect } from "next/navigation";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Admin · Productos | Plaza Mayoreo del Celular",
-  description: "Gestión de catálogo.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Admin · Productos",
+  description: "Alta, edición y activación de productos del catálogo.",
+  path: "/admin/productos",
+  noindex: true,
+});
 
 function num(v: number | string): number {
   return typeof v === "string" ? parseFloat(v) : v;

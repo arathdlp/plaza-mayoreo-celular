@@ -1,14 +1,17 @@
-import { createClient } from "@/lib/supabase/server";
 import PrivateChrome from "@/components/auth/PrivateChrome";
 import SignOutButton from "@/components/auth/SignOutButton";
-import { redirect } from "next/navigation";
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Mi cuenta | Plaza Mayoreo del Celular",
-  description: "Panel de tu cuenta en Plaza Mayoreo del Celular.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Mi cuenta",
+  description: "Accede al dashboard, carrito y pedidos de tu cuenta en Plaza Mayoreo del Celular.",
+  path: "/dashboard",
+  noindex: true,
+});
 
 export default async function DashboardPage() {
   const supabase = await createClient();

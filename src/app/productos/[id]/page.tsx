@@ -1,6 +1,7 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { getProductoById, parseProductoId } from "@/lib/productos";
+import { pageMetadata } from "@/lib/seo";
 import ProductoDetalleView from "./ProductoDetalleView";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -13,17 +14,41 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const productId = parseProductoId(id);
   if (!productId) {
-    return { title: "Producto no encontrado | Plaza Mayoreo del Celular" };
+    return pageMetadata({
+      title: "Producto no encontrado",
+      description: "Identificador de producto no válido.",
+      path: `/productos/${id}`,
+      noindex: true,
+    });
   }
 
   const producto = await getProductoById(productId);
   if (!producto) {
-    return { title: "Producto no encontrado | Plaza Mayoreo del Celular" };
+    return pageMetadata({
+      title: "Producto no encontrado",
+      description: "El artículo no existe o ya no está disponible en el catálogo.",
+      path: `/productos/${id}`,
+      noindex: true,
+    });
   }
 
+  const description = `${producto.marca} ${producto.modelo} · ${producto.categoria}. ${producto.descripcion?.slice(0, 120) ?? "Refacción y accesorio en Morelia."}${producto.descripcion && producto.descripcion.length > 120 ? "…" : ""}`;
+  const base = pageMetadata({
+    title: producto.nombre,
+    description,
+    path: `/productos/${productId}`,
+  });
+  const ogImages = producto.imagen_url
+    ? [{ url: producto.imagen_url, alt: producto.nombre }]
+    : base.openGraph?.images;
+
   return {
-    title: `${producto.nombre} | Plaza Mayoreo del Celular`,
-    description: `${producto.marca} ${producto.modelo} — ${producto.categoria}`,
+    ...base,
+    openGraph: {
+      ...base.openGraph,
+      type: "website",
+      images: ogImages,
+    },
   };
 }
 
