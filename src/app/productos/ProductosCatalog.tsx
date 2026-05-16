@@ -1,6 +1,7 @@
 "use client";
 
 import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
+import ProductoImagen from "@/components/ProductoImagen";
 import { formatoPesos } from "@/lib/format";
 import { productosListHref } from "@/lib/productos-url";
 import {
@@ -8,7 +9,6 @@ import {
   type CategoriaFiltro,
   type Producto,
 } from "@/types/producto";
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -21,34 +21,6 @@ const FILTROS: { id: CategoriaFiltro; etiqueta: string }[] = [
   { id: "Accesorio", etiqueta: "Accesorio" },
   { id: "Celular", etiqueta: "Celular" },
 ];
-
-function ProductoImagen({ producto }: { producto: Producto }) {
-  if (producto.imagen_url) {
-    return (
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#0a1628]">
-        <Image
-          src={producto.imagen_url}
-          alt={producto.nombre}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br from-[#0a1628] to-[#12121c] text-[#0066FF]/35"
-      aria-hidden
-    >
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25">
-        <rect x="7" y="3" width="10" height="18" rx="2" />
-        <circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none" />
-      </svg>
-    </div>
-  );
-}
 
 export type ProductosCatalogProps = {
   productos: Producto[];
@@ -191,7 +163,13 @@ export default function ProductosCatalog({
                   aria-label={`Ver ${p.nombre}`}
                 />
                 <div className="relative z-[1] pointer-events-none overflow-hidden">
-                  <ProductoImagen producto={p} />
+                  <ProductoImagen
+                    categoria={p.categoria}
+                    marca={p.marca}
+                    nombre={p.nombre}
+                    imagenUrl={p.imagen_url}
+                    variant="card"
+                  />
                   <span className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full border border-white/10 bg-black/50 px-2.5 py-1 text-xs font-medium text-[#0066FF] backdrop-blur-md">
                     {p.categoria}
                   </span>

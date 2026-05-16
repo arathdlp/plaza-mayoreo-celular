@@ -1,37 +1,8 @@
 import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
+import ProductoImagen from "@/components/ProductoImagen";
 import { formatoPesos } from "@/lib/format";
 import type { Producto } from "@/types/producto";
-import Image from "next/image";
 import Link from "next/link";
-
-function ProductoImagenGrande({ producto }: { producto: Producto }) {
-  if (producto.imagen_url) {
-    return (
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a1628] shadow-[0_24px_80px_-24px_rgba(0,0,0,0.6)]">
-        <Image
-          src={producto.imagen_url}
-          alt={producto.nombre}
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          priority
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="flex aspect-square w-full items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-[#0a1628] to-[#12121c] text-[#0066FF]/30 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.6)]"
-      aria-hidden
-    >
-      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-        <rect x="7" y="3" width="10" height="18" rx="2" />
-        <circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none" />
-      </svg>
-    </div>
-  );
-}
 
 function StockBadge({ stock }: { stock: number }) {
   if (stock <= 0) {
@@ -101,7 +72,14 @@ export default function ProductoDetalleView({ producto }: ProductoDetalleViewPro
         </nav>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
-          <ProductoImagenGrande producto={producto} />
+          <ProductoImagen
+            categoria={producto.categoria}
+            marca={producto.marca}
+            nombre={producto.nombre}
+            imagenUrl={producto.imagen_url}
+            variant="detail"
+            priority
+          />
 
           <div className="flex flex-col">
             <span className="inline-flex w-fit rounded-full border border-[#0066FF]/30 bg-[#0066FF]/10 px-3 py-1 text-sm font-medium text-[#0066FF]">
