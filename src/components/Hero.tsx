@@ -1,180 +1,123 @@
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
-const PARTICLES = Array.from({ length: 56 }, (_, i) => {
-  const a = (i * 9301 + 49297) % 233280 / 233280;
-  const b = (i * 49297 + 9301) % 233280 / 233280;
-  return {
-    left: `${5 + a * 90}%`,
-    top: `${5 + b * 90}%`,
-    size: 1 + (i % 3),
-    delay: (i % 8) * 0.35,
-    duration: 3.5 + (i % 4) * 0.8,
-  };
-});
+const TITLE_WORDS = [
+  { text: "Todo", accent: false },
+  { text: "para", accent: false },
+  { text: "tu", accent: false },
+  { text: "Celular", accent: true },
+] as const;
 
-function HeroParticles() {
+const WORD_STAGGER = 0.15;
+const TITLE_END_DELAY = TITLE_WORDS.length * WORD_STAGGER + 0.35;
+
+const TICKER_TEXT =
+  "Pantallas · Baterías · Tapas Traseras · Placas de Carga · Accesorios · Celulares · ";
+
+const EASE_OUT = [0, 0, 0.2, 1] as const;
+
+function HeroTicker() {
+  const reduceMotion = useReducedMotion();
+
+  if (reduceMotion) {
+    return (
+      <p className="mt-14 text-center text-lg font-medium text-gray-300" aria-hidden>
+        {TICKER_TEXT.replace(/ · $/, "")}
+      </p>
+    );
+  }
+
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div
-        className="absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage: `radial-gradient(circle at 20% 30%, rgba(0,102,255,0.25) 0%, transparent 45%),
-            radial-gradient(circle at 80% 70%, rgba(0,102,255,0.15) 0%, transparent 40%)`,
-        }}
-      />
-      {PARTICLES.map((p, i) => (
-        <span
-          key={i}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            opacity: 0.15 + (i % 4) * 0.08,
-            animation: `pmc-twinkle ${p.duration}s ease-in-out ${p.delay}s infinite`,
-          }}
-        />
-      ))}
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
-        }}
-      />
-    </div>
-  );
-}
-
-function HeroPhoneVisual() {
-  return (
-    <div
-      className="relative mx-auto w-full max-w-[min(100%,380px)] select-none"
-      aria-hidden
-    >
-      <div
-        className="absolute left-1/2 top-1/2 h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0066FF]/25 blur-[80px]"
-        style={{ animation: "pmc-float 8s ease-in-out infinite" }}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 h-[95%] w-[95%] -translate-x-1/2 -translate-y-1/2 rounded-[3rem] bg-[#0066FF]/15 blur-3xl"
-        style={{ animation: "pmc-float 6s ease-in-out infinite reverse" }}
-      />
-
-      <div className="relative mx-auto aspect-[10/19] w-[78%] max-w-[280px]">
-        <div
-          className="absolute -inset-[3px] rounded-[2.85rem] opacity-90"
-          style={{
-            background: "linear-gradient(145deg, rgba(0,102,255,0.5), rgba(0,40,120,0.3), rgba(0,102,255,0.35))",
-            boxShadow:
-              "0 0 0 1px rgba(0,102,255,0.4), 0 24px 80px -12px rgba(0,102,255,0.45), 0 0 120px -20px rgba(0,102,255,0.35)",
-          }}
-        />
-
-        <div
-          className="relative h-full w-full overflow-hidden rounded-[2.65rem] p-[3px]"
-          style={{
-            background: "linear-gradient(160deg, #4a5568 0%, #1a1d24 40%, #0d0f14 100%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -2px 8px rgba(0,0,0,0.5)",
-          }}
-        >
-          <div className="relative h-full w-full overflow-hidden rounded-[2.45rem] bg-black ring-1 ring-white/10">
-            <div
-              className="absolute inset-[2px] rounded-[2.35rem]"
-              style={{
-                background: `linear-gradient(165deg, #0c1220 0%, #050810 45%, #0a1628 100%)`,
-              }}
-            />
-            <div
-              className="absolute inset-x-4 top-3 flex justify-center"
-              style={{ paddingTop: "6%" }}
-            >
-              <div className="h-7 w-[32%] rounded-full bg-black ring-1 ring-white/10 shadow-inner">
-                <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-zinc-800/80" />
-              </div>
-            </div>
-            <div
-              className="absolute inset-x-3 bottom-3 top-[18%] rounded-2xl ring-1 ring-white/[0.07]"
-              style={{
-                background: `linear-gradient(180deg, rgba(0,102,255,0.12) 0%, rgba(0,30,80,0.4) 35%, #020308 90%)`,
-                boxShadow: "inset 0 0 60px rgba(0,102,255,0.15)",
-              }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 rounded-[2.35rem] opacity-40"
-              style={{
-                background:
-                  "linear-gradient(125deg, transparent 35%, rgba(255,255,255,0.12) 48%, transparent 58%)",
-              }}
-            />
-            <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-6">
-              <span className="h-1 w-8 rounded-full bg-white/20" />
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute -left-1 top-[22%] h-10 w-[3px] rounded-l-sm bg-gradient-to-b from-zinc-600 to-zinc-800 shadow-sm" />
-        <div className="absolute -left-1 top-[32%] h-14 w-[3px] rounded-l-sm bg-gradient-to-b from-zinc-600 to-zinc-800 shadow-sm" />
-        <div className="absolute -right-1 top-[28%] h-20 w-[3px] rounded-r-sm bg-gradient-to-b from-zinc-600 to-zinc-800 shadow-sm" />
-      </div>
-
-      <div
-        className="absolute -right-4 top-[12%] h-14 w-14 rounded-2xl border border-white/10 bg-gradient-to-br from-[#0066FF] to-[#003d99] shadow-lg shadow-[#0066FF]/40"
-        style={{ animation: "pmc-float 5.5s ease-in-out infinite" }}
-      />
-      <div
-        className="absolute -left-6 bottom-[18%] h-11 w-11 rounded-xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-sm"
-        style={{ animation: "pmc-float 6.5s ease-in-out infinite reverse" }}
-      />
+    <div className="relative mt-14 w-full overflow-hidden border-y border-gray-100 py-5" aria-hidden>
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white to-transparent" />
+      <motion.div
+        className="flex w-max whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+      >
+        {[0, 1].map((copy) => (
+          <span
+            key={copy}
+            className="shrink-0 px-8 text-lg font-medium tracking-wide text-gray-300"
+          >
+            {TICKER_TEXT.repeat(2)}
+          </span>
+        ))}
+      </motion.div>
     </div>
   );
 }
 
 export default function Hero() {
+  const reduceMotion = useReducedMotion();
+
   return (
     <section
       id="inicio"
-      className="relative overflow-hidden bg-gradient-to-br from-black via-[#0a1628] to-[#0c2848] px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-16 lg:px-8 lg:pb-32 lg:pt-24"
+      className="overflow-hidden bg-white px-4 py-20 sm:px-6 lg:px-8 lg:py-32"
     >
-      <HeroParticles />
+      <div className="mx-auto max-w-5xl text-center">
+        <h1 className="flex flex-wrap items-baseline justify-center gap-x-[0.28em] gap-y-1">
+          {TITLE_WORDS.map((word, index) => (
+            <motion.span
+              key={word.text}
+              className={`text-6xl font-extrabold leading-[1.05] tracking-tight lg:text-8xl ${
+                word.accent ? "text-[#0066FF]" : "text-[#111827]"
+              }`}
+              initial={reduceMotion ? false : { opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.6,
+                delay: index * WORD_STAGGER,
+                ease: EASE_OUT,
+              }}
+            >
+              {word.text}
+            </motion.span>
+          ))}
+        </h1>
 
-      <div className="relative mx-auto grid max-w-7xl gap-14 lg:grid-cols-2 lg:items-center lg:gap-10">
-        <div
-          className="max-w-xl text-white"
-          style={{ animation: "pmc-fade-up 0.65s ease-out both" }}
+        <motion.p
+          className="mx-auto mt-8 max-w-2xl text-xl font-medium leading-relaxed text-[#6B7280]"
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            delay: TITLE_END_DELAY,
+            ease: EASE_OUT,
+          }}
         >
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#0066FF]/90">
-            Morelia · Mayoreo y retail
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.08]">
-            Todo para tu Celular en un Solo Lugar
-          </h1>
-          <p className="mt-5 text-lg font-normal leading-relaxed text-white/70 sm:text-xl">
-            Accesorios, reparaciones y servicios con entrega rápida en Morelia
-          </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
-              href="#productos"
-              className="inline-flex h-12 items-center justify-center rounded-full bg-[#0066FF] px-8 text-sm font-semibold text-white shadow-lg shadow-[#0066FF]/30 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-xl hover:shadow-[#0066FF]/35 active:scale-[0.97]"
-            >
-              Ver Productos
-            </Link>
-            <Link
-              href="#servicios"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 bg-white/5 px-8 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-300 ease-out hover:border-white/35 hover:bg-white/10 active:scale-[0.97]"
-            >
-              Solicitar Servicio
-            </Link>
-          </div>
-        </div>
-        <div
-          className="flex justify-center lg:justify-end"
-          style={{ animation: "pmc-fade-up 0.75s ease-out 0.12s both" }}
+          Refacciones, reparaciones y servicios con entrega en Morelia
+        </motion.p>
+
+        <HeroTicker />
+
+        <motion.div
+          className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            delay: TITLE_END_DELAY + 0.25,
+            ease: EASE_OUT,
+          }}
         >
-          <HeroPhoneVisual />
-        </div>
+          <Link
+            href="#productos"
+            className="inline-flex items-center justify-center rounded-full bg-[#0066FF] px-8 py-4 text-base font-bold text-white shadow-md shadow-[#0066FF]/20 transition-colors duration-300 ease-out hover:bg-[#3385ff] active:scale-[0.98]"
+          >
+            Ver Productos
+          </Link>
+          <Link
+            href="#servicios"
+            className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white px-8 py-4 text-base font-bold text-[#111827] transition-all duration-300 ease-out hover:bg-gray-50 active:scale-[0.98]"
+          >
+            Solicitar Servicio
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

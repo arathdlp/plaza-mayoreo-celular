@@ -1,53 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import type { ReactNode } from "react";
+
+const EASE_OUT = [0, 0, 0.2, 1] as const;
 
 type ScrollRevealProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   delayMs?: number;
-  /** 0–1, fraction of element visible before triggering */
-  threshold?: number;
 };
 
-export default function ScrollReveal({
-  children,
-  className = "",
-  delayMs = 0,
-  threshold = 0.12,
-}: ScrollRevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+export default function ScrollReveal({ children, className = "", delayMs = 0 }: ScrollRevealProps) {
+  const reduceMotion = useReducedMotion();
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold, rootMargin: "0px 0px -8% 0px" },
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
+  if (reduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
-    <div
-      ref={ref}
-      className={`pmc-reveal ${visible ? "pmc-reveal-visible" : ""} ${className}`}
-      style={
-        visible
-          ? ({ transitionDelay: `${delayMs}ms` } satisfies CSSProperties)
-          : undefined
-      }
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-8% 0px" }}
+      transition={{
+        duration: 0.6,
+        delay: delayMs / 1000,
+        ease: EASE_OUT,
+      }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
+
+export const staggerContainer = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+export const staggerItem = {
+  hidden: { opacity: 0, y: 28 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: EASE_OUT },
+  },
+};
