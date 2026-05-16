@@ -1,6 +1,7 @@
 "use client";
 
 import { useCarrito } from "@/hooks/useCarrito";
+import { useFavoritos } from "@/hooks/useFavoritos";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,6 +14,35 @@ function CarritoBadge() {
     <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#0066FF] px-[5px] text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
       {totalItems > 99 ? "99+" : totalItems}
     </span>
+  );
+}
+
+function FavoritosBadge() {
+  const { total, listo } = useFavoritos();
+  if (!listo || total <= 0) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
+      {total > 99 ? "99+" : total}
+    </span>
+  );
+}
+
+function HeartIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 20.25l-1.45-1.32C5.4 14.36 2 11.28 2 7.5 2 5 4 3 6.5 3c1.74 0 3.41.81 4.5 2.09C12.09 3.81 13.76 3 15.5 3 18 3 20 5 20 7.5c0 3.78-3.4 6.86-8.55 11.43L12 20.25z" />
+    </svg>
   );
 }
 
@@ -161,6 +191,14 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
           transition={{ delay: 0.15, duration: 0.4 }}
         >
           <Link
+            href="/favoritos"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-red-500 active:scale-95"
+            aria-label="Favoritos"
+          >
+            <HeartIcon />
+            <FavoritosBadge />
+          </Link>
+          <Link
             href="/carrito"
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95"
             aria-label="Carrito de compras"
@@ -209,6 +247,13 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
               Admin
             </Link>
           ) : null}
+          <Link
+            href="/favoritos"
+            className="rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-red-500"
+            onClick={() => setOpen(false)}
+          >
+            Favoritos
+          </Link>
           <Link
             href="/carrito"
             className="rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"

@@ -319,6 +319,45 @@ create policy "envios_select_own"
   );
 
 -- ---------------------------------------------------------------------------
+-- 6. favoritos
+-- ---------------------------------------------------------------------------
+create table if not exists public.favoritos (
+  id uuid primary key default gen_random_uuid(),
+  cliente_id uuid not null references public.clientes (id) on delete cascade,
+  producto_id bigint not null references public.productos (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (cliente_id, producto_id)
+);
+
+comment on table public.favoritos is 'Productos guardados por cliente';
+
+create index if not exists favoritos_cliente_id_idx on public.favoritos (cliente_id);
+create index if not exists favoritos_producto_id_idx on public.favoritos (producto_id);
+
+alter table public.favoritos enable row level security;
+
+drop policy if exists "favoritos_select_own" on public.favoritos;
+create policy "favoritos_select_own"
+  on public.favoritos
+  for select
+  to authenticated
+  using (auth.uid() = cliente_id);
+
+drop policy if exists "favoritos_insert_own" on public.favoritos;
+create policy "favoritos_insert_own"
+  on public.favoritos
+  for insert
+  to authenticated
+  with check (auth.uid() = cliente_id);
+
+drop policy if exists "favoritos_delete_own" on public.favoritos;
+create policy "favoritos_delete_own"
+  on public.favoritos
+  for delete
+  to authenticated
+  using (auth.uid() = cliente_id);
+
+-- ---------------------------------------------------------------------------
 -- Trigger: crear fila en clientes al registrarse (opcional)
 -- Usa metadata de signUp: full_name, phone
 -- ---------------------------------------------------------------------------

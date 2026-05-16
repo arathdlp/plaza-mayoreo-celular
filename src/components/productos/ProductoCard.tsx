@@ -1,6 +1,8 @@
 "use client";
 
 import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
+import FavoriteHeartButton from "@/components/favoritos/FavoriteHeartButton";
+import QuitarFavoritoButton from "@/components/favoritos/QuitarFavoritoButton";
 import ProductoImagen from "@/components/ProductoImagen";
 import { formatoPesos } from "@/lib/format";
 import type { ProductoCarritoPayload } from "@/types/carrito";
@@ -13,27 +15,11 @@ type ProductoCardProps = {
     marca: string;
     modelo: string;
   };
+  /** Muestra botón explícito para quitar (página /favoritos) */
+  mostrarQuitar?: boolean;
 };
 
-function FavoriteButton() {
-  return (
-    <button
-      type="button"
-      aria-label="Guardar en favoritos"
-      className="pointer-events-auto absolute right-2 top-2 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white text-gray-400 shadow-sm transition-colors duration-200 hover:text-[#0066FF] sm:right-3 sm:top-3"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-        <path d="M12 20.25l-1.45-1.32C5.4 14.36 2 11.28 2 7.5 2 5 4 3 6.5 3c1.74 0 3.41.81 4.5 2.09C12.09 3.81 13.76 3 15.5 3 18 3 20 5 20 7.5c0 3.78-3.4 6.86-8.55 11.43L12 20.25z" />
-      </svg>
-    </button>
-  );
-}
-
-export default function ProductoCard({ producto }: ProductoCardProps) {
+export default function ProductoCard({ producto, mostrarQuitar = false }: ProductoCardProps) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -65,7 +51,7 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
             </span>
             <span className="truncate">{producto.categoria}</span>
           </span>
-          <FavoriteButton />
+          <FavoriteHeartButton productoId={producto.id} />
         </div>
 
         <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col border-l border-gray-100 p-3 sm:border-l-0 sm:border-t sm:p-5">
@@ -80,7 +66,7 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
           <p className="mt-auto pt-2 text-lg font-bold tracking-tight text-gray-900 sm:pt-3 sm:text-2xl">
             {formatoPesos(producto.precio)}
           </p>
-          <div className="pointer-events-auto relative z-[2] mt-2 w-full min-w-0">
+          <div className="pointer-events-auto relative z-[2] mt-2 w-full min-w-0 space-y-2">
             <AgregarAlCarritoButton
               className="w-full"
               producto={{
@@ -90,6 +76,7 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
                 imagen_url: producto.imagen_url,
               }}
             />
+            {mostrarQuitar ? <QuitarFavoritoButton productoId={producto.id} /> : null}
           </div>
         </div>
       </div>
