@@ -6,7 +6,7 @@ import { formatoPesos } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { crearPedido } from "./actions";
 
@@ -26,6 +26,7 @@ function PlaceholderThumb() {
 
 export default function CheckoutCliente() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lineas, totalPrecio, listo, vaciar } = useCarrito();
 
   const [authReady, setAuthReady] = useState(false);
@@ -44,6 +45,12 @@ export default function CheckoutCliente() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pedidoConfirmadoId, setPedidoConfirmadoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("pago") === "fallido") {
+      setError("El pago no se completó. Revisa tu método de pago o intenta de nuevo.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!listo) return;
@@ -111,31 +118,50 @@ export default function CheckoutCliente() {
       metodoPago,
       lineas: lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad })),
     });
-    setSubmitting(false);
 
     if (!result.ok) {
+      setSubmitting(false);
       setError(result.error);
       return;
     }
 
-    vaciar();
-
     if (metodoPago === "mercado_pago") {
-      const base = process.env.NEXT_PUBLIC_MERCADOPAGO_REDIRECT_URL?.trim();
-      if (base) {
-        try {
-          const u = new URL(base);
-          u.searchParams.set("external_reference", String(result.pedidoId));
-          window.location.href = u.toString();
-        } catch {
-          window.location.href = `${base}?external_reference=${encodeURIComponent(String(result.pedidoId))}`;
+      try {
+        const prefRes = await fetch("/api/mercadopago/preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pedidoId: result.pedidoId,
+            comprador: { nombre, email, telefono },
+            items: lineas.map((l) => ({
+              productoId: l.productoId,
+              cantidad: l.cantidad,
+              nombre: l.nombre,
+              precio: l.precio,
+            })),
+          }),
+        });
+
+        const prefData = (await prefRes.json()) as { init_point?: string; error?: string };
+
+        if (!prefRes.ok || !prefData.init_point) {
+          setError(prefData.error ?? "No se pudo iniciar el pago con Mercado Pago.");
+          return;
         }
-      } else {
-        window.location.href = "https://www.mercadopago.com.mx/";
+
+        vaciar();
+        window.location.href = prefData.init_point;
+        return;
+      } catch {
+        setError("Error de conexión con Mercado Pago. Intenta de nuevo.");
+        return;
+      } finally {
+        setSubmitting(false);
       }
-      return;
     }
 
+    vaciar();
+    setSubmitting(false);
     setPedidoConfirmadoId(result.pedidoId);
   }
 

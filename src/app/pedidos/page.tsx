@@ -133,7 +133,12 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   );
 }
 
-export default async function PedidosPage() {
+export default async function PedidosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pago?: string }>;
+}) {
+  const { pago } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -181,6 +186,22 @@ export default async function PedidosPage() {
         </>
       }
     >
+      {pago === "exitoso" ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+        >
+          Pago recibido correctamente. Tu pedido aparece en la lista con estado pendiente de preparación.
+        </div>
+      ) : null}
+      {pago === "pendiente" ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+        >
+          Tu pago está pendiente de confirmación. Te avisaremos cuando se acredite.
+        </div>
+      ) : null}
       {error ? (
         <div
           role="alert"

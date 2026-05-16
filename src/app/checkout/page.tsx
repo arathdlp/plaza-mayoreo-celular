@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { pageMetadata } from "@/lib/seo";
@@ -14,7 +15,15 @@ export default function CheckoutPage() {
   return (
     <>
       <Header />
-      <CheckoutCliente />
+      <Suspense
+        fallback={
+          <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a] px-4 py-16">
+            <div className="mx-auto max-w-6xl animate-pulse text-white/50">Cargando checkout…</div>
+          </main>
+        }
+      >
+        <CheckoutCliente />
+      </Suspense>
       <Footer />
     </>
   );
