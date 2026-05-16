@@ -1,5 +1,17 @@
 import PrivateChrome from "@/components/auth/PrivateChrome";
 import SignOutButton from "@/components/auth/SignOutButton";
+import {
+  alertError,
+  alertSuccess,
+  alertWarning,
+  badgeEstado,
+  btnPrimary,
+  btnSecondary,
+  cardStatic,
+  priceLg,
+  textMuted,
+  textSubtle,
+} from "@/lib/design-system";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +32,6 @@ type PedidoItemRow = {
   cantidad: number;
   precio_unitario: number | string;
   producto_id: number;
-  /** Supabase puede tipar la FK como objeto o arreglo de un elemento */
   productos: ProductoNombre | ProductoNombre[] | null;
 };
 
@@ -58,19 +69,6 @@ function resolverNombreProducto(item: PedidoItemRow): string {
   return row?.nombre?.trim() || `Producto #${item.producto_id}`;
 }
 
-function badgeEstadoClass(estado: string): string {
-  const map: Record<string, string> = {
-    pendiente: "border-amber-400/40 bg-amber-500/[0.14] text-amber-100",
-    preparando: "border-sky-400/40 bg-sky-500/[0.14] text-sky-100",
-    enviado: "border-violet-400/40 bg-violet-500/[0.14] text-violet-100",
-    entregado: "border-emerald-400/40 bg-emerald-500/[0.14] text-emerald-100",
-  };
-  return (
-    map[estado] ??
-    "border-white/20 bg-white/[0.08] text-white/80"
-  );
-}
-
 function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   const total = parseNum(pedido.total);
   const fecha = new Intl.DateTimeFormat("es-MX", {
@@ -79,30 +77,33 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   }).format(new Date(pedido.created_at));
 
   const items = pedido.pedido_items ?? [];
+  const badge =
+    badgeEstado[pedido.estado as keyof typeof badgeEstado] ??
+    "border-gray-200 bg-gray-100 text-gray-700";
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:p-7">
+    <article className={`${cardStatic} p-6 sm:p-7`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/45">Pedido</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-white">#{pedido.id}</p>
-          <p className="mt-2 text-sm text-white/55">{fecha}</p>
+          <p className={`text-xs font-bold uppercase tracking-[0.18em] ${textSubtle}`}>Pedido</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-[#111827]">#{pedido.id}</p>
+          <p className={`mt-2 text-sm ${textMuted}`}>{fecha}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badgeEstadoClass(pedido.estado)}`}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badge}`}
           >
             {etiquetaEstado(pedido.estado)}
           </span>
-          <span className="inline-flex items-center rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs font-medium text-white/75">
+          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
             {etiquetaMetodo(pedido.metodo_pago)}
           </span>
         </div>
       </div>
 
-      <div className="mt-6 border-t border-white/10 pt-6">
-        <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/45">Productos</p>
-        <ul className="mt-3 divide-y divide-white/[0.08]">
+      <div className="mt-6 border-t border-gray-200 pt-6">
+        <p className={`text-xs font-bold uppercase tracking-[0.15em] ${textSubtle}`}>Productos</p>
+        <ul className="mt-3 divide-y divide-gray-100">
           {items.map((item) => {
             const nombre = resolverNombreProducto(item);
             const pu = parseNum(item.precio_unitario);
@@ -113,21 +114,21 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
                 className="flex items-start justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium leading-snug text-white">{nombre}</p>
-                  <p className="mt-1 text-xs tabular-nums text-white/45">
+                  <p className="font-medium leading-snug text-[#111827]">{nombre}</p>
+                  <p className={`mt-1 text-xs tabular-nums ${textSubtle}`}>
                     {item.cantidad} × {formatoPesos(pu)}
                   </p>
                 </div>
-                <p className="shrink-0 font-semibold tabular-nums text-white">{formatoPesos(subtotal)}</p>
+                <p className="shrink-0 font-semibold tabular-nums text-[#111827]">{formatoPesos(subtotal)}</p>
               </li>
             );
           })}
         </ul>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
-        <span className="text-sm font-medium text-white/65">Total del pedido</span>
-        <span className="text-xl font-semibold tabular-nums tracking-tight text-white">{formatoPesos(total)}</span>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 pt-6">
+        <span className={`text-sm font-medium ${textMuted}`}>Total del pedido</span>
+        <span className={priceLg}>{formatoPesos(total)}</span>
       </div>
     </article>
   );
@@ -176,10 +177,7 @@ export default async function PedidosPage({
       description="Consulta el detalle de tus compras, estado de envío y método de pago."
       actions={
         <>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:border-[#0066FF]/40 hover:bg-[#0066FF]/10"
-          >
+          <Link href="/dashboard" className={`${btnSecondary} px-5 py-2.5 text-sm`}>
             Dashboard
           </Link>
           <SignOutButton />
@@ -187,38 +185,26 @@ export default async function PedidosPage({
       }
     >
       {pago === "exitoso" ? (
-        <div
-          role="status"
-          className="mb-6 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-        >
+        <div role="status" className={`mb-6 ${alertSuccess}`}>
           Pago recibido correctamente. Tu pedido aparece en la lista con estado pendiente de preparación.
         </div>
       ) : null}
       {pago === "pendiente" ? (
-        <div
-          role="status"
-          className="mb-6 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
-        >
+        <div role="status" className={`mb-6 ${alertWarning}`}>
           Tu pago está pendiente de confirmación. Te avisaremos cuando se acredite.
         </div>
       ) : null}
       {error ? (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-        >
+        <div role="alert" className={alertError}>
           No se pudieron cargar los pedidos. Intenta de nuevo más tarde.
         </div>
       ) : pedidos.length === 0 ? (
         <div className="py-10 text-center">
-          <p className="text-lg font-medium text-white/75">Aún no tienes pedidos</p>
-          <p className="mt-2 text-sm text-white/50">
+          <p className="text-lg font-bold text-[#111827]">Aún no tienes pedidos</p>
+          <p className={`mt-2 text-sm ${textMuted}`}>
             Cuando compres en la tienda, tus órdenes aparecerán aquí con el seguimiento actualizado.
           </p>
-          <Link
-            href="/productos"
-            className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[#0066FF] px-8 text-sm font-semibold text-white shadow-lg shadow-[#0066FF]/25 transition-all duration-300 hover:bg-[#3385ff]"
-          >
+          <Link href="/productos" className={`mt-8 h-12 px-8 text-sm ${btnPrimary}`}>
             Ver productos
           </Link>
         </div>

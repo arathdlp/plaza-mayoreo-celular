@@ -1,7 +1,20 @@
 "use client";
 
+import PageReveal from "@/components/PageReveal";
 import { authFieldClass, authLabelClass } from "@/components/auth/AuthShell";
 import { useCarrito } from "@/hooks/useCarrito";
+import {
+  accentLabel,
+  alertError,
+  alertSuccess,
+  alertWarning,
+  btnPrimary,
+  cardStatic,
+  headingPage,
+  panelMuted,
+  priceLg,
+  textMuted,
+} from "@/lib/design-system";
 import { formatoPesos } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -13,7 +26,7 @@ import { crearPedido } from "./actions";
 function PlaceholderThumb() {
   return (
     <div
-      className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-gradient-to-br from-[#0a1628] to-[#12121c] text-[#0066FF]/35 sm:h-[72px] sm:w-[72px]"
+      className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gradient-to-br from-gray-100 to-gray-50 text-[#0066FF]/35 sm:h-[72px] sm:w-[72px]"
       aria-hidden
     >
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25">
@@ -167,12 +180,12 @@ export default function CheckoutCliente() {
 
   if (!listo) {
     return (
-      <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a] px-4 py-16 sm:px-6 lg:px-8">
+      <main className="relative flex-1 overflow-hidden bg-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl animate-pulse space-y-6">
-          <div className="h-10 w-56 rounded-lg bg-white/10" />
+          <div className="h-10 w-56 rounded-lg bg-gray-200" />
           <div className="grid gap-8 lg:grid-cols-2">
-            <div className="h-[420px] rounded-2xl bg-white/10" />
-            <div className="h-[320px] rounded-2xl bg-white/10" />
+            <div className="h-[420px] rounded-2xl bg-gray-200" />
+            <div className="h-[320px] rounded-2xl bg-gray-200" />
           </div>
         </div>
       </main>
@@ -197,22 +210,22 @@ export default function CheckoutCliente() {
 
   if (pedidoConfirmadoId !== null) {
     return (
-      <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a]">
+      <main className="relative flex-1 overflow-hidden bg-white">
         {bgShell}
         <div className="relative mx-auto max-w-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="rounded-2xl border border-emerald-500/35 bg-emerald-500/[0.08] px-8 py-12 text-center shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/15 text-emerald-300">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-8 py-12 text-center shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100 text-emerald-700">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-emerald-400/90">
+            <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
               Pedido registrado
             </p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white">¡Gracias por tu compra!</h1>
-            <p className="mt-4 text-white/65">
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#111827]">¡Gracias por tu compra!</h1>
+            <p className="mt-4 text-gray-600">
               Tu número de pedido es{" "}
-              <span className="font-semibold tabular-nums text-white">#{pedidoConfirmadoId}</span>. Pagarás al recibir
+              <span className="font-semibold tabular-nums text-[#111827]">#{pedidoConfirmadoId}</span>. Pagarás al recibir
               tu pedido.
             </p>
             <Link
@@ -223,7 +236,7 @@ export default function CheckoutCliente() {
             </Link>
             <Link
               href="/productos"
-              className="mt-4 block text-sm font-medium text-white/50 transition-colors hover:text-[#0066FF]"
+              className="mt-4 block text-sm font-medium text-gray-500 transition-colors hover:text-[#0066FF]"
             >
               Seguir comprando
             </Link>
@@ -234,28 +247,28 @@ export default function CheckoutCliente() {
   }
 
   return (
-    <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a]">
+    <PageReveal as="main" className="relative flex-1 overflow-hidden bg-white">
       {bgShell}
 
       <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#0066FF]/90">Checkout</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Finalizar compra</h1>
-        <p className="mt-2 max-w-xl text-sm text-white/55">
+        <p className={accentLabel}>Checkout</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827]">Finalizar compra</h1>
+        <p className="mt-2 max-w-xl text-sm text-gray-500">
           Completa tus datos de envío y elige cómo quieres pagar.
         </p>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8">
             {!authReady ? (
               <div className="animate-pulse space-y-4">
-                <div className="h-10 rounded-lg bg-white/10" />
-                <div className="h-10 rounded-lg bg-white/10" />
-                <div className="h-32 rounded-lg bg-white/10" />
+                <div className="h-10 rounded-lg bg-gray-200" />
+                <div className="h-10 rounded-lg bg-gray-200" />
+                <div className="h-32 rounded-lg bg-gray-200" />
               </div>
             ) : !userId ? (
-              <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-6 text-center">
-                <p className="text-sm font-medium text-amber-100/90">Inicia sesión para confirmar tu pedido</p>
-                <p className="mt-2 text-sm text-white/55">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-6 text-center">
+                <p className="text-sm font-medium text-amber-900">Inicia sesión para confirmar tu pedido</p>
+                <p className="mt-2 text-sm text-gray-500">
                   Tus pedidos se guardan vinculados a tu cuenta de forma segura.
                 </p>
                 <Link
@@ -264,7 +277,7 @@ export default function CheckoutCliente() {
                 >
                   Iniciar sesión
                 </Link>
-                <p className="mt-4 text-xs text-white/40">
+                <p className="mt-4 text-xs text-gray-400">
                   ¿No tienes cuenta?{" "}
                   <Link href="/registro?next=/checkout" className="font-medium text-[#0066FF] hover:underline">
                     Regístrate
@@ -276,7 +289,7 @@ export default function CheckoutCliente() {
                 {error ? (
                   <div
                     role="alert"
-                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
                   >
                     {error}
                   </div>
@@ -420,7 +433,7 @@ export default function CheckoutCliente() {
 
                 <fieldset className="space-y-3">
                   <legend className={`${authLabelClass} mb-3 block`}>Método de pago</legend>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/12 bg-black/25 px-4 py-4 transition-colors has-[:checked]:border-[#0066FF]/45 has-[:checked]:bg-[#0066FF]/10">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 transition-colors has-[:checked]:border-[#0066FF]/45 has-[:checked]:bg-[#0066FF]/10">
                     <input
                       type="radio"
                       name="metodoPago"
@@ -430,13 +443,13 @@ export default function CheckoutCliente() {
                       className="mt-1 size-4 shrink-0 accent-[#0066FF]"
                     />
                     <span>
-                      <span className="block font-semibold text-white">Pagar con Mercado Pago</span>
-                      <span className="mt-1 block text-sm text-white/50">
+                      <span className="block font-semibold text-[#111827]">Pagar con Mercado Pago</span>
+                      <span className="mt-1 block text-sm text-gray-500">
                         Serás redirigido para completar el pago en línea de forma segura.
                       </span>
                     </span>
                   </label>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/12 bg-black/25 px-4 py-4 transition-colors has-[:checked]:border-[#0066FF]/45 has-[:checked]:bg-[#0066FF]/10">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 transition-colors has-[:checked]:border-[#0066FF]/45 has-[:checked]:bg-[#0066FF]/10">
                     <input
                       type="radio"
                       name="metodoPago"
@@ -446,8 +459,8 @@ export default function CheckoutCliente() {
                       className="mt-1 size-4 shrink-0 accent-[#0066FF]"
                     />
                     <span>
-                      <span className="block font-semibold text-white">Pagar al recibir</span>
-                      <span className="mt-1 block text-sm text-white/50">
+                      <span className="block font-semibold text-[#111827]">Pagar al recibir</span>
+                      <span className="mt-1 block text-sm text-gray-500">
                         Liquidas en efectivo o tarjeta cuando recibas tu pedido.
                       </span>
                     </span>
@@ -465,16 +478,16 @@ export default function CheckoutCliente() {
             )}
           </div>
 
-          <aside className="rounded-2xl border border-white/10 bg-white/[0.05] p-6 backdrop-blur-sm lg:sticky lg:top-24">
-            <h2 className="text-lg font-semibold text-white">Resumen del pedido</h2>
+          <aside className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 backdrop-blur-sm lg:sticky lg:top-24">
+            <h2 className="text-lg font-bold text-[#111827]">Resumen del pedido</h2>
             <ul className="mt-6 max-h-[min(360px,50vh)] space-y-4 overflow-y-auto pr-1">
               {lineas.map((linea) => {
                 const subtotal = linea.precio * linea.cantidad;
                 return (
-                  <li key={linea.productoId} className="flex gap-3 border-b border-white/[0.06] pb-4 last:border-0 last:pb-0">
+                  <li key={linea.productoId} className="flex gap-3 border-b border-gray-100 pb-4 last:border-0 last:pb-0">
                     <Link
                       href={`/productos/${linea.productoId}`}
-                      className="shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10"
+                      className="shrink-0 overflow-hidden rounded-lg ring-1 ring-gray-200"
                     >
                       {linea.imagen_url ? (
                         <div className="relative h-16 w-16 sm:h-[72px] sm:w-[72px]">
@@ -493,34 +506,34 @@ export default function CheckoutCliente() {
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/productos/${linea.productoId}`}
-                        className="line-clamp-2 text-sm font-semibold leading-snug text-white hover:text-[#0066FF]"
+                        className="line-clamp-2 text-sm font-semibold leading-snug text-[#111827] hover:text-[#0066FF]"
                       >
                         {linea.nombre}
                       </Link>
-                      <p className="mt-1 text-xs text-white/45">
+                      <p className="mt-1 text-xs text-gray-400">
                         {linea.cantidad} × {formatoPesos(linea.precio)}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold tabular-nums text-white">{formatoPesos(subtotal)}</p>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-[#111827]">{formatoPesos(subtotal)}</p>
                   </li>
                 );
               })}
             </ul>
-            <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="mt-6 border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-base font-medium text-white/75">Total</span>
-                <span className="text-xl font-semibold tabular-nums text-white">{formatoPesos(totalPrecio)}</span>
+                <span className="text-base font-medium text-gray-700">Total</span>
+                <span className="text-xl font-semibold tabular-nums text-[#111827]">{formatoPesos(totalPrecio)}</span>
               </div>
-              <p className="mt-2 text-xs text-white/40">
+              <p className="mt-2 text-xs text-gray-400">
                 Los precios finales se validan al confirmar según el catálogo actual.
               </p>
             </div>
-            <Link href="/carrito" className="mt-6 block text-center text-sm font-medium text-white/50 hover:text-[#0066FF]">
+            <Link href="/carrito" className="mt-6 block text-center text-sm font-medium text-gray-500 hover:text-[#0066FF]">
               ← Volver al carrito
             </Link>
           </aside>
         </div>
       </div>
-    </main>
+    </PageReveal>
   );
 }

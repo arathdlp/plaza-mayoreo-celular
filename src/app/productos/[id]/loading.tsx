@@ -6,7 +6,7 @@ export default function ProductoDetalleLoading() {
   return (
     <>
       <Header />
-      <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a]">
+      <main className="relative flex-1 overflow-hidden bg-white">
         <ProductoDetalleSkeleton />
       </main>
       <Footer />

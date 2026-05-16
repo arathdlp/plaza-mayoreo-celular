@@ -109,4 +109,148 @@ h4 {
   .pmc-icon-animate {
     animation: none;
   }
+
+  .pmc-btn-shimmer::after {
+    animation: none;
+  }
+}
+
+/* Shimmer en botón Capacitaciones */
+@keyframes pmc-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.pmc-btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.pmc-btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  animation: pmc-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* cult-ui: borde animado en cards */
+@keyframes cult-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cult-animated-border {
+  position: relative;
+  border-radius: 1rem;
+  padding: 1px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cult-animated-border::before {
+  content: "";
+  position: absolute;
+  inset: -120%;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(0, 102, 255, 0.15) 60deg,
+    #0066ff 120deg,
+    #60a5fa 180deg,
+    #0066ff 240deg,
+    rgba(0, 102, 255, 0.15) 300deg,
+    transparent 360deg
+  );
+  opacity: 0;
+  transition: opacity 0.45s ease-out;
+  animation: cult-border-spin 5s linear infinite;
+  animation-play-state: paused;
+}
+
+.cult-animated-border:hover::before,
+.cult-animated-border:focus-within::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+.cult-animated-border-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(1rem - 1px);
+  background: #ffffff;
+}
+
+/* cult-ui: glow y sombra azul sutil en cards de producto */
+.cult-product-card {
+  transition:
+    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cult-product-card:hover {
+  box-shadow:
+    0 4px 24px -4px rgba(59, 130, 246, 0.08),
+    0 20px 48px -16px rgba(59, 130, 246, 0.14),
+    0 0 0 1px rgba(0, 102, 255, 0.06);
+}
+
+.cult-product-card.cult-animated-border:hover::before {
+  opacity: 0.85;
+  filter: blur(0.5px);
+}
+
+/* cult-ui: shimmer en hover (botones negros) */
+.cult-btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.cult-btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.22) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.cult-btn-shimmer:hover::after {
+  opacity: 1;
+  animation: pmc-shimmer 0.85s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cult-animated-border::before {
+    animation: none;
+    opacity: 0 !important;
+  }
+
+  .cult-btn-shimmer:hover::after {
+    animation: none;
+    opacity: 0;
+  }
 }

@@ -98,9 +98,9 @@ export default function Categories() {
             <motion.li key={cat.name} variants={reduceMotion ? undefined : staggerItem} className="h-full">
               <Link
                 href="/productos"
-                className="group flex h-full min-h-[200px] flex-col rounded-2xl border border-gray-200 bg-white p-7 transition-all duration-[600ms] ease-out hover:scale-[1.02] hover:border-gray-300 hover:shadow-[0_12px_40px_-12px_rgba(17,24,39,0.12)] active:scale-[0.99]"
+                className="group flex h-full min-h-[200px] flex-col rounded-2xl border border-gray-200 bg-white p-7 transition-all duration-500 ease-out hover:scale-[1.02] hover:border-[#0066FF]/40 hover:shadow-[0_12px_40px_-12px_rgba(0,102,255,0.12)] active:scale-[0.99]"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0066FF]/8 transition-colors duration-[600ms] ease-out group-hover:bg-[#0066FF]/12">
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0066FF]/8 transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:bg-[#0066FF]/12">
                   {cat.icon}
                 </span>
                 <span className="mt-5 text-lg font-bold tracking-tight text-gray-900">{cat.name}</span>

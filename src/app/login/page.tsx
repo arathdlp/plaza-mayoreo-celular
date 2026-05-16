@@ -14,7 +14,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-black via-[#0a1628] to-[#0c2848] text-white/50">
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">
           Cargando…
         </div>
       }

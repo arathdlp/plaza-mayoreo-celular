@@ -72,7 +72,7 @@ export default function RegistroForm() {
         {error ? (
           <div
             role="alert"
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
             {error}
           </div>
@@ -170,7 +170,7 @@ export default function RegistroForm() {
           {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>
       </form>
-      <p className="mt-8 text-center text-sm text-white/55">
+      <p className="mt-8 text-center text-sm text-gray-500">
         ¿Ya tienes cuenta?{" "}
         <Link
           href={next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"}

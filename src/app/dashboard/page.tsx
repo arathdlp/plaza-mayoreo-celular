@@ -1,5 +1,6 @@
 import PrivateChrome from "@/components/auth/PrivateChrome";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { cardInteractive, textMuted } from "@/lib/design-system";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -31,26 +32,20 @@ export default async function DashboardPage() {
       description="Bienvenido de nuevo. Desde aquí podrás gestionar pedidos y carrito cuando estén disponibles."
       actions={<SignOutButton />}
     >
-      <p className="text-sm font-medium text-[#0066FF]">Sesión activa</p>
-      <p className="mt-2 text-lg font-semibold text-white">{displayName}</p>
-      <p className="mt-1 text-sm text-white/55">{user.email}</p>
+      <p className="text-sm font-bold uppercase tracking-[0.15em] text-[#0066FF]">Sesión activa</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-[#111827]">{displayName}</p>
+      <p className={`mt-1 text-sm ${textMuted}`}>{user.email}</p>
       {typeof user.user_metadata?.phone === "string" && user.user_metadata.phone ? (
-        <p className="mt-1 text-sm text-white/55">Tel: {user.user_metadata.phone}</p>
+        <p className={`mt-1 text-sm ${textMuted}`}>Tel: {user.user_metadata.phone}</p>
       ) : null}
-      <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
         <li>
-          <Link
-            href="/carrito"
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-medium text-white transition-all duration-300 hover:border-[#0066FF]/40 hover:bg-[#0066FF]/10"
-          >
+          <Link href="/carrito" className={`block px-5 py-4 text-sm font-semibold text-[#111827] ${cardInteractive}`}>
             Ir al carrito →
           </Link>
         </li>
         <li>
-          <Link
-            href="/pedidos"
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-medium text-white transition-all duration-300 hover:border-[#0066FF]/40 hover:bg-[#0066FF]/10"
-          >
+          <Link href="/pedidos" className={`block px-5 py-4 text-sm font-semibold text-[#111827] ${cardInteractive}`}>
             Ver pedidos →
           </Link>
         </li>

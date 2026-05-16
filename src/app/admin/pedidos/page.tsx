@@ -61,8 +61,8 @@ export default async function AdminPedidosPage() {
       <div className="mx-auto max-w-6xl">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#0066FF]/90">Operaciones</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Pedidos</h1>
-          <p className="mt-2 text-sm text-white/55">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827]">Pedidos</h1>
+          <p className="mt-2 text-sm text-gray-500">
             Actualiza el estado operativo de cada pedido; los clientes lo ven en su historial.
           </p>
         </div>

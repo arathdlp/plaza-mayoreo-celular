@@ -6,10 +6,10 @@ export default function ProductoNotFound() {
   return (
     <>
       <Header />
-      <main className="relative flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-black via-[#0a1628] to-[#06060a] px-4 py-24 text-center">
+      <main className="relative flex flex-1 flex-col items-center justify-center bg-white px-4 py-24 text-center">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#0066FF]/90">404</p>
-        <h1 className="mt-4 text-3xl font-semibold text-white">Producto no encontrado</h1>
-        <p className="mt-3 max-w-md text-white/60">
+        <h1 className="mt-4 text-3xl font-bold text-[#111827]">Producto no encontrado</h1>
+        <p className="mt-3 max-w-md text-gray-500">
           El producto no existe o ya no está disponible en el catálogo.
         </p>
         <Link

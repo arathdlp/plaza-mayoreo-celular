@@ -174,44 +174,25 @@ function GeneratedVisual({
       icon = <IconPantalla />;
   }
 
-  const frame =
-    variant === "detail"
-      ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-      : "border-b border-white/10";
+  const frame = variant === "detail" ? "" : "border-b border-gray-100";
 
   return (
     <div
-      className={`relative flex h-full w-full items-center justify-center overflow-hidden ${grad} ${frame}`}
+      className={`relative flex h-full w-full items-center justify-center overflow-hidden bg-gray-100 ${frame}`}
       role="img"
       aria-label={`Ilustración de producto: ${nombre}`}
     >
-      {visualKey === "pantalla_iphone" ? (
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/80 via-gray-100/40 to-gray-100"
+        aria-hidden
+      />
+
+      <div className="relative z-[1] flex h-full min-h-0 w-full min-w-0 items-center justify-center">
         <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(158deg, rgba(228,228,231,0.28) 0%, rgba(255,255,255,0.08) 18%, transparent 45%)",
-          }}
-          aria-hidden
-        />
-      ) : null}
-
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-white/22 via-white/[0.09] to-transparent"
-        aria-hidden
-      />
-
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.12] mix-blend-screen"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 95% 65% at 50% 100%, rgba(0,102,255,0.65), transparent 58%)",
-        }}
-        aria-hidden
-      />
-
-      <div className="relative z-[1] flex h-full min-h-0 w-full min-w-0 items-center justify-center p-[6%]">
-        <div className="flex h-[40%] w-[40%] shrink-0 items-center justify-center text-white/90 [&>svg]:h-full [&>svg]:w-full [&>svg]:drop-shadow-[0_2px_28px_rgba(255,255,255,0.22)]">
+          className={`flex shrink-0 items-center justify-center text-[#0066FF] ${
+            variant === "card" ? "h-14 w-14 [&>svg]:h-14 [&>svg]:w-14" : "h-[40%] w-[40%] [&>svg]:h-full [&>svg]:w-full"
+          }`}
+        >
           {icon}
         </div>
       </div>
@@ -232,12 +213,12 @@ export default function ProductoImagen({
   priority = false,
 }: ProductoImagenProps) {
   const visualKey = resolveVisualKey(categoria, marca);
-  const aspect = variant === "detail" ? "aspect-square" : "aspect-[4/3]";
+  const aspect = variant === "detail" ? "aspect-square" : "";
   const outer =
     variant === "detail"
-      ? `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a1628] shadow-[0_24px_80px_-24px_rgba(0,0,0,0.6)] ${className}`
-      : `relative w-full overflow-hidden bg-[#0a1628] ${className}`;
-  const shell = `${outer} ${aspect}`;
+      ? `relative w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm ${className}`
+      : `relative flex h-full w-full items-center justify-center overflow-hidden bg-gray-100 transition-transform duration-[400ms] ease-out group-hover:scale-105 ${className}`;
+  const shell = aspect ? `${outer} ${aspect}` : outer;
 
   if (imagenUrl) {
     return (
@@ -246,7 +227,7 @@ export default function ProductoImagen({
           src={imagenUrl}
           alt={nombre}
           fill
-          className={`object-cover ${variant === "card" ? "transition-transform duration-500 group-hover:scale-105" : ""}`}
+          className={`object-cover ${variant === "card" ? "transition-transform duration-[400ms] ease-out group-hover:scale-105" : ""}`}
           sizes={
             variant === "detail"
               ? "(max-width: 1024px) 100vw, 50vw"

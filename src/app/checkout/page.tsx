@@ -17,8 +17,8 @@ export default function CheckoutPage() {
       <Header />
       <Suspense
         fallback={
-          <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a] px-4 py-16">
-            <div className="mx-auto max-w-6xl animate-pulse text-white/50">Cargando checkout…</div>
+          <main className="relative flex-1 overflow-hidden bg-white px-4 py-16">
+            <div className="mx-auto max-w-6xl animate-pulse text-gray-500">Cargando checkout…</div>
           </main>
         }
       >

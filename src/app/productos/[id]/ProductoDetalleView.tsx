@@ -1,26 +1,32 @@
+"use client";
+
 import AgregarAlCarritoButton from "@/components/carrito/AgregarAlCarritoButton";
+import PageReveal from "@/components/PageReveal";
 import ProductoImagen from "@/components/ProductoImagen";
+import { cardStatic, headingPage, textMuted, textSubtle } from "@/lib/design-system";
 import { formatoPesos } from "@/lib/format";
+import { TRANSITION_BASE } from "@/lib/motion-landing";
 import type { Producto } from "@/types/producto";
+import { motion } from "framer-motion";
 import Link from "next/link";
 
 function StockBadge({ stock }: { stock: number }) {
   if (stock <= 0) {
     return (
-      <span className="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-sm font-medium text-red-300">
+      <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-red-700">
         Agotado
       </span>
     );
   }
   if (stock <= 5) {
     return (
-      <span className="inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-200">
+      <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
         Últimas {stock} unidades
       </span>
     );
   }
   return (
-    <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-300">
+    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">
       {stock} en stock
     </span>
   );
@@ -34,78 +40,77 @@ export default function ProductoDetalleView({ producto }: ProductoDetalleViewPro
   const descripcion = producto.descripcion?.trim();
 
   return (
-    <main className="relative flex-1 overflow-hidden bg-gradient-to-b from-black via-[#0a1628] to-[#06060a]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 70% 40% at 50% -10%, rgba(0,102,255,0.18), transparent 55%)",
-        }}
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        <nav aria-label="Breadcrumb" className="text-sm text-white/50">
+    <PageReveal as="main" className="flex-1 bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <nav aria-label="Breadcrumb" className={`text-sm ${textSubtle}`}>
           <ol className="flex flex-wrap items-center gap-2">
             <li>
               <Link href="/" className="transition-colors duration-300 hover:text-[#0066FF]">
                 Inicio
               </Link>
             </li>
-            <li aria-hidden className="text-white/30">
+            <li aria-hidden className="text-gray-300">
               /
             </li>
             <li>
-              <Link
-                href="/productos"
-                className="transition-colors duration-300 hover:text-[#0066FF]"
-              >
+              <Link href="/productos" className="transition-colors duration-300 hover:text-[#0066FF]">
                 Productos
               </Link>
             </li>
-            <li aria-hidden className="text-white/30">
+            <li aria-hidden className="text-gray-300">
               /
             </li>
-            <li className="font-medium text-white/90" aria-current="page">
+            <li className="font-medium text-gray-700" aria-current="page">
               {producto.nombre}
             </li>
           </ol>
         </nav>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
-          <ProductoImagen
-            categoria={producto.categoria}
-            marca={producto.marca}
-            nombre={producto.nombre}
-            imagenUrl={producto.imagen_url}
-            variant="detail"
-            priority
-          />
+          <motion.div
+            className="cult-animated-border"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={TRANSITION_BASE}
+          >
+            <div className="cult-animated-border-inner overflow-hidden bg-gray-100 p-1">
+              <ProductoImagen
+                categoria={producto.categoria}
+                marca={producto.marca}
+                nombre={producto.nombre}
+                imagenUrl={producto.imagen_url}
+                variant="detail"
+                priority
+              />
+            </div>
+          </motion.div>
 
-          <div className="flex flex-col">
-            <span className="inline-flex w-fit rounded-full border border-[#0066FF]/30 bg-[#0066FF]/10 px-3 py-1 text-sm font-medium text-[#0066FF]">
+          <motion.div
+            className="flex flex-col"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...TRANSITION_BASE, delay: 0.12 }}
+          >
+            <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-600">
               {producto.categoria}
             </span>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {producto.nombre}
-            </h1>
+            <h1 className={`mt-4 ${headingPage}`}>{producto.nombre}</h1>
 
-            <p className="mt-3 text-lg text-white/60">
-              <span className="font-medium text-white/80">{producto.marca}</span>
-              <span className="mx-2 text-white/30">·</span>
+            <p className={`mt-3 text-lg ${textMuted}`}>
+              <span className="font-semibold text-gray-800">{producto.marca}</span>
+              <span className="mx-2 text-gray-300">·</span>
               <span>{producto.modelo}</span>
             </p>
 
             {descripcion ? (
-              <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-white/45">
-                  Descripción
-                </h2>
-                <p className="mt-2 leading-relaxed text-white/70">{descripcion}</p>
+              <div className={`mt-6 ${cardStatic} p-5`}>
+                <h2 className={`text-sm font-bold uppercase tracking-wider ${textSubtle}`}>Descripción</h2>
+                <p className={`mt-2 leading-relaxed ${textMuted}`}>{descripcion}</p>
               </div>
             ) : null}
 
-            <p className="mt-8 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            <p className="mt-8 text-4xl font-bold tracking-tight text-gray-900">
               {formatoPesos(producto.precio)}
             </p>
 
@@ -117,6 +122,7 @@ export default function ProductoDetalleView({ producto }: ProductoDetalleViewPro
 
             <AgregarAlCarritoButton
               size="lg"
+              className="mt-8"
               producto={{
                 id: producto.id,
                 nombre: producto.nombre,
@@ -124,17 +130,17 @@ export default function ProductoDetalleView({ producto }: ProductoDetalleViewPro
                 imagen_url: producto.imagen_url,
               }}
             />
-          </div>
+          </motion.div>
         </div>
 
         <Link
           href="/productos"
-          className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-white/55 transition-colors duration-300 hover:text-[#0066FF]"
+          className={`mt-12 inline-flex items-center gap-2 text-sm font-semibold ${textSubtle} transition-colors duration-300 hover:text-[#0066FF]`}
         >
           <span aria-hidden>←</span>
           Volver a productos
         </Link>
       </div>
-    </main>
+    </PageReveal>
   );
 }

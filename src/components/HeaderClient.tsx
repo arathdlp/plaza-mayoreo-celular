@@ -4,7 +4,7 @@ import { useCarrito } from "@/hooks/useCarrito";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 function CarritoBadge() {
   const { totalItems, listo } = useCarrito();
@@ -25,7 +25,15 @@ const nav = [
 ] as const;
 
 const navLinkClass =
-  "text-[0.9375rem] font-semibold text-gray-600 transition-colors duration-300 ease-out hover:text-[#0066FF]";
+  "relative text-[0.9375rem] font-semibold text-gray-600 transition-colors duration-300 ease-out hover:text-[#0066FF] after:absolute after:bottom-[-6px] after:left-1/2 after:h-[2px] after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-[#0066FF] after:transition-all after:duration-300 after:ease-out hover:after:w-full";
+
+function NavLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={navLinkClass}>
+      {children}
+    </Link>
+  );
+}
 
 const adminNavClassDesktop =
   "text-[0.9375rem] font-semibold text-[#0066FF] transition-colors duration-300 ease-out hover:text-[#3385ff]";
@@ -98,17 +106,18 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [pathname]);
 
   return (
     <motion.header
-      className="sticky top-0 z-50 border-b transition-[border-color,box-shadow] duration-300"
+      className={`sticky top-0 z-50 border-b transition-[border-color,box-shadow,background-color] duration-300 ${
+        solid ? "border-gray-200/95 bg-white/90 shadow-[0_4px_24px_-8px_rgba(17,24,39,0.08)] backdrop-blur-md" : "border-transparent bg-white/0 shadow-none"
+      }`}
       initial={false}
       animate={{
-        backgroundColor: solid ? "rgba(255, 255, 255, 0.92)" : "rgba(255, 255, 255, 0)",
+        backgroundColor: solid ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0)",
         borderColor: solid ? "rgba(229, 231, 235, 0.95)" : "rgba(229, 231, 235, 0)",
         boxShadow: solid ? "0 4px 24px -8px rgba(17, 24, 39, 0.08)" : "0 0 0 rgba(17, 24, 39, 0)",
-        backdropFilter: solid ? "blur(12px)" : "blur(0px)",
       }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -134,9 +143,9 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
 
         <nav className="hidden items-center gap-8 lg:gap-9 md:flex" aria-label="Principal">
           {nav.map((item) => (
-            <Link key={item.href} href={item.href} className={navLinkClass}>
+            <NavLink key={item.href} href={item.href}>
               {item.label}
-            </Link>
+            </NavLink>
           ))}
           {isAdmin ? (
             <Link href="/admin" className={adminNavClassDesktop}>

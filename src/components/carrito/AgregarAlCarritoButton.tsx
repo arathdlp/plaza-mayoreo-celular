@@ -1,5 +1,6 @@
 "use client";
 
+import ShimmerButton from "@/components/cult/ShimmerButton";
 import { useCarrito } from "@/hooks/useCarrito";
 import type { ProductoCarritoPayload } from "@/types/carrito";
 
@@ -16,15 +17,11 @@ export default function AgregarAlCarritoButton({
 }: Props) {
   const { agregar } = useCarrito();
 
-  const base =
-    size === "lg"
-      ? "mt-10 inline-flex h-14 w-full items-center justify-center rounded-full bg-[#0066FF] text-base font-semibold text-white shadow-lg shadow-[#0066FF]/30 transition-all duration-300 hover:bg-[#3385ff] hover:shadow-xl active:scale-[0.97] sm:w-auto sm:min-w-[280px]"
-      : "pointer-events-auto relative z-[2] mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0066FF] text-sm font-semibold text-white shadow-md shadow-[#0066FF]/20 transition-all duration-300 hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97]";
-
   return (
-    <button
-      type="button"
-      className={`${base} ${className}`.trim()}
+    <ShimmerButton
+      size={size === "lg" ? "lg" : "md"}
+      fullWidth
+      className={className}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -32,6 +29,6 @@ export default function AgregarAlCarritoButton({
       }}
     >
       Agregar al carrito
-    </button>
+    </ShimmerButton>
   );
 }

@@ -51,8 +51,8 @@ export default async function AdminProductosPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#0066FF]/90">Catálogo</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Productos</h1>
-            <p className="mt-2 text-sm text-white/55">
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827]">Productos</h1>
+            <p className="mt-2 text-sm text-gray-500">
               Alta, edición y control de visibilidad en la tienda (activo / inactivo).
             </p>
           </div>

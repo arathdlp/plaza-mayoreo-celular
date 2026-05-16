@@ -139,16 +139,16 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
       {loadError ? (
         <div
           role="alert"
-          className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           No se pudieron cargar los productos desde Supabase.
         </div>
       ) : null}
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm">
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-gray-200 bg-white backdrop-blur-sm">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs font-semibold uppercase tracking-wide text-white/45">
+            <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-4">Nombre</th>
               <th className="px-4 py-4">Marca</th>
               <th className="px-4 py-4">Categoría</th>
@@ -157,21 +157,21 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
               <th className="px-4 py-4 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06]">
+          <tbody className="divide-y divide-gray-100">
             {productos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-white/55">
+                <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                   No hay productos. Usa &quot;Agregar producto&quot; para crear el primero.
                 </td>
               </tr>
             ) : (
               productos.map((p) => (
-                <tr key={p.id} className="text-white/90 transition-colors hover:bg-white/[0.03]">
+                <tr key={p.id} className="text-gray-800 transition-colors hover:bg-gray-50">
                   <td className="max-w-[220px] px-4 py-4 font-medium text-white">
                     <span className="line-clamp-2">{p.nombre}</span>
                   </td>
-                  <td className="px-4 py-4 text-white/75">{p.marca}</td>
-                  <td className="px-4 py-4 text-white/65">{p.categoria}</td>
+                  <td className="px-4 py-4 text-gray-700">{p.marca}</td>
+                  <td className="px-4 py-4 text-gray-600">{p.categoria}</td>
                   <td className="px-4 py-4 text-right tabular-nums font-semibold text-white">
                     {formatoPesos(p.precio)}
                   </td>
@@ -185,7 +185,7 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
                       className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors ${
                         p.activo
                           ? "border-[#0066FF]/50 bg-[#0066FF]/25"
-                          : "border-white/15 bg-white/[0.06]"
+                          : "border-gray-200 bg-white/[0.06]"
                       } ${pendingToggleId === p.id ? "opacity-50" : ""}`}
                     >
                       <span
@@ -222,16 +222,16 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
           <div
             role="dialog"
             aria-modal="true"
-            className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/12 bg-[#0c1629] p-6 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.85)] sm:p-8"
+            className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-[#0c1629] p-6 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.85)] sm:p-8"
           >
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-bold text-[#111827]">
               {editingId === null ? "Nuevo producto" : `Editar #${editingId}`}
             </h2>
 
             {formError ? (
               <div
                 role="alert"
-                className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
               >
                 {formError}
               </div>
@@ -282,7 +282,7 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
                   id="adm-cat"
                   value={form.categoria}
                   onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
-                  className={`${authFieldClass} appearance-none bg-[#0a1628]`}
+                  className={`${authFieldClass} appearance-none bg-white`}
                 >
                   {CATEGORIAS_PRODUCTO.map((c) => (
                     <option key={c} value={c}>
@@ -381,7 +381,7 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
                   onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))}
                   className="size-4 accent-[#0066FF]"
                 />
-                <span className="text-sm font-medium text-white/85">Visible en tienda (activo)</span>
+                <span className="text-sm font-medium text-gray-800">Visible en tienda (activo)</span>
               </label>
             </div>
 
@@ -397,7 +397,7 @@ export default function ProductosAdminCliente({ initialProductos, loadError }: P
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-white/20 px-6 text-sm font-medium text-white hover:bg-white/10"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-gray-300 px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Cancelar
               </button>
