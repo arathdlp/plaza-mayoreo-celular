@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  enviarEmailConfirmacionPedido,
+  enviarEmailNuevoPedidoAdmin,
+} from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 
 export type LineaPedidoInput = {
@@ -36,6 +40,7 @@ export async function crearPedido(input: CrearPedidoInput): Promise<CrearPedidoR
 
   const validated: {
     productoId: number;
+    nombre: string;
     cantidad: number;
     precio_unitario: number;
   }[] = [];
@@ -49,7 +54,7 @@ export async function crearPedido(input: CrearPedidoInput): Promise<CrearPedidoR
 
     const { data: prod, error } = await supabase
       .from("productos")
-      .select("id, precio, activo")
+      .select("id, nombre, precio, activo")
       .eq("id", line.productoId)
       .eq("activo", true)
       .maybeSingle();
@@ -69,6 +74,7 @@ export async function crearPedido(input: CrearPedidoInput): Promise<CrearPedidoR
 
     validated.push({
       productoId: prod.id as number,
+      nombre: (prod.nombre as string)?.trim() || `Producto #${prod.id}`,
       cantidad: Math.floor(line.cantidad),
       precio_unitario: precio,
     });
@@ -130,6 +136,32 @@ export async function crearPedido(input: CrearPedidoInput): Promise<CrearPedidoR
     console.error("[crearPedido] pedido_items", itemsErr.message);
     await supabase.from("pedidos").delete().eq("id", pedidoId);
     return { ok: false, error: "No se pudieron guardar los productos del pedido." };
+  }
+
+  try {
+    const emailPedido = {
+      id: pedidoId,
+      total,
+      metodo_pago: input.metodoPago,
+      direccion_entrega: input.direccionEntrega.trim(),
+    };
+    const emailItems = validated.map((v) => ({
+      nombre: v.nombre,
+      cantidad: v.cantidad,
+      precio_unitario: v.precio_unitario,
+    }));
+    const emailCliente = {
+      nombre: input.nombre.trim(),
+      email: input.email.trim(),
+      telefono: input.telefono.trim(),
+    };
+
+    await Promise.all([
+      enviarEmailConfirmacionPedido(emailPedido, emailItems, emailCliente),
+      enviarEmailNuevoPedidoAdmin(emailPedido, emailItems, emailCliente),
+    ]);
+  } catch {
+    /* el pedido ya fue creado; no bloquear por fallo de email */
   }
 
   return { ok: true, pedidoId };

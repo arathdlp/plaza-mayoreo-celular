@@ -1,3 +1,4 @@
+import { cargarDatosEmailPedido, enviarEmailPagoConfirmado } from "@/lib/email";
 import { fetchMercadoPagoPayment } from "@/lib/mercadopago-payments";
 import { getMercadoPagoAccessToken } from "@/lib/mercadopago";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -66,6 +67,20 @@ async function processPaymentNotification(paymentId: string): Promise<void> {
 
     if (error) {
       console.error("[MP webhook] update approved", pedidoId, error.message);
+      return;
+    }
+
+    try {
+      const emailData = await cargarDatosEmailPedido(supabase, pedidoId);
+      if (emailData) {
+        await enviarEmailPagoConfirmado(
+          emailData.pedido,
+          emailData.items,
+          emailData.cliente,
+        );
+      }
+    } catch {
+      /* no bloquear el webhook por fallo de email */
     }
     return;
   }
