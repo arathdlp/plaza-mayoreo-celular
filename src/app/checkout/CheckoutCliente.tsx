@@ -6,7 +6,6 @@ import { useCarrito } from "@/hooks/useCarrito";
 import {
   accentLabel,
   alertError,
-  alertSuccess,
   alertWarning,
   btnPrimary,
   cardStatic,
@@ -57,7 +56,8 @@ export default function CheckoutCliente() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pedidoConfirmadoId, setPedidoConfirmadoId] = useState<number | null>(null);
+  /** Evita redirect a /productos cuando el carrito se vacía tras confirmar */
+  const [salirTrasPedido, setSalirTrasPedido] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("pago") === "fallido") {
@@ -66,11 +66,11 @@ export default function CheckoutCliente() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!listo) return;
+    if (!listo || salirTrasPedido || submitting) return;
     if (lineas.length === 0) {
       router.replace("/productos");
     }
-  }, [listo, lineas.length, router]);
+  }, [listo, lineas.length, router, salirTrasPedido, submitting]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -132,6 +132,8 @@ export default function CheckoutCliente() {
       lineas: lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad })),
     });
 
+    console.log("[checkout] crearPedido result", result);
+
     if (!result.ok) {
       setSubmitting(false);
       setError(result.error);
@@ -162,6 +164,7 @@ export default function CheckoutCliente() {
           return;
         }
 
+        setSalirTrasPedido(true);
         vaciar();
         window.location.href = prefData.init_point;
         return;
@@ -173,9 +176,9 @@ export default function CheckoutCliente() {
       }
     }
 
-    vaciar();
+    setSalirTrasPedido(true);
     setSubmitting(false);
-    setPedidoConfirmadoId(result.pedidoId);
+    router.replace(`/pedido-confirmado?id=${result.pedidoId}`);
   }
 
   if (!listo) {
@@ -208,43 +211,6 @@ export default function CheckoutCliente() {
     </>
   );
 
-  if (pedidoConfirmadoId !== null) {
-    return (
-      <main className="relative flex-1 overflow-hidden bg-white">
-        {bgShell}
-        <div className="relative mx-auto max-w-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-8 py-12 text-center shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100 text-emerald-700">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <p className="mt-6 text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
-              Pedido registrado
-            </p>
-            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#111827]">¡Gracias por tu compra!</h1>
-            <p className="mt-4 text-gray-600">
-              Tu número de pedido es{" "}
-              <span className="font-semibold tabular-nums text-[#111827]">#{pedidoConfirmadoId}</span>. Pagarás al recibir
-              tu pedido.
-            </p>
-            <Link
-              href="/pedidos"
-              className="mt-10 inline-flex h-12 items-center justify-center rounded-full bg-[#0066FF] px-8 text-sm font-semibold text-white shadow-lg shadow-[#0066FF]/25 transition-all hover:bg-[#3385ff]"
-            >
-              Ver mis pedidos
-            </Link>
-            <Link
-              href="/productos"
-              className="mt-4 block text-sm font-medium text-gray-500 transition-colors hover:text-[#0066FF]"
-            >
-              Seguir comprando
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <PageReveal as="main" className="relative flex-1 overflow-hidden bg-white">
