@@ -35,7 +35,9 @@ export default async function AdminPedidosPage() {
 
   const { data, error } = await r.supabase
     .from("pedidos")
-    .select("id, cliente_id, created_at, total, estado, metodo_pago, clientes ( nombre, email )")
+    .select(
+      "id, cliente_id, created_at, total, estado, estado_pago, metodo_pago, clientes ( nombre, email )",
+    )
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -50,6 +52,7 @@ export default async function AdminPedidosPage() {
       created_at: row.created_at as string,
       total: num(row.total as number | string),
       estado: row.estado as string,
+      estado_pago: (row.estado_pago as string | null) ?? null,
       metodo_pago: (row.metodo_pago as string | null) ?? null,
       clienteNombre: cli.nombre,
       clienteEmail: cli.email,

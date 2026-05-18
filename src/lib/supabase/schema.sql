@@ -113,6 +113,23 @@ alter table public.pedidos
 
 comment on column public.pedidos.metodo_pago is 'mercado_pago | contra_entrega';
 
+-- Mercado Pago: estado del cobro y referencia al pago
+alter table public.pedidos
+  add column if not exists estado_pago text;
+
+alter table public.pedidos
+  add column if not exists mp_payment_id text;
+
+alter table public.pedidos drop constraint if exists pedidos_estado_pago_check;
+alter table public.pedidos
+  add constraint pedidos_estado_pago_check check (
+    estado_pago is null
+    or estado_pago in ('pendiente', 'pagado', 'fallido')
+  );
+
+comment on column public.pedidos.estado_pago is 'pendiente | pagado | fallido (Mercado Pago)';
+comment on column public.pedidos.mp_payment_id is 'ID del pago en Mercado Pago';
+
 -- ---------------------------------------------------------------------------
 -- 4. pedido_items
 -- ---------------------------------------------------------------------------

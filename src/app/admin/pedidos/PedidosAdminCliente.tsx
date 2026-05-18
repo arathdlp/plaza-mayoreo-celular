@@ -3,6 +3,11 @@
 import { actualizarEstadoPedido } from "@/app/admin/pedidos/actions";
 import type { PedidoAdminRow } from "@/app/admin/pedidos/types";
 import { formatoPesos } from "@/lib/format";
+import {
+  claseBadgeEstadoPago,
+  etiquetaEstadoPago,
+  mostrarEstadoPago,
+} from "@/lib/pedido-pago";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
@@ -66,7 +71,7 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
       ) : null}
 
       <div className="mt-10 overflow-x-auto rounded-2xl border border-gray-200 bg-white backdrop-blur-sm">
-        <table className="w-full min-w-[880px] text-left text-sm">
+        <table className="w-full min-w-[1000px] text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-4">ID</th>
@@ -74,7 +79,8 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
               <th className="px-4 py-4">Fecha</th>
               <th className="px-4 py-4 text-right">Total</th>
               <th className="px-4 py-4">Estado</th>
-              <th className="px-4 py-4">Pago</th>
+              <th className="px-4 py-4">Estado pago</th>
+              <th className="px-4 py-4">Método</th>
               <th className="px-4 py-4">Cambiar estado</th>
             </tr>
           </thead>
@@ -105,9 +111,20 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
                       {formatoPesos(p.total)}
                     </td>
                     <td className="px-4 py-4">
-                      <span className="rounded-full border border-gray-200 bg-white/[0.06] px-2.5 py-1 text-xs font-medium text-gray-700">
+                      <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">
                         {etiquetaEstado(p.estado)}
                       </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      {mostrarEstadoPago(p.metodo_pago, p.estado_pago) ? (
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${claseBadgeEstadoPago(p.estado_pago)}`}
+                        >
+                          {etiquetaEstadoPago(p.estado_pago)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-gray-600">{etiquetaMetodo(p.metodo_pago)}</td>
                     <td className="px-4 py-4">

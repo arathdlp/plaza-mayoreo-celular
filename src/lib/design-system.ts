@@ -62,6 +62,12 @@ export const badgeEstado = {
   entregado: "border-emerald-200 bg-emerald-50 text-emerald-800",
 } as const;
 
+export const badgeEstadoPago = {
+  pendiente: "border-amber-200 bg-amber-50 text-amber-800",
+  pagado: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  fallido: "border-red-200 bg-red-50 text-red-800",
+} as const;
+
 export const adminNavLink =
   "cursor-pointer rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition-all duration-300 ease-out hover:border-[#0066FF]/40 hover:text-[#0066FF]";
 

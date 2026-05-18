@@ -4,6 +4,7 @@ export type PedidoAdminRow = {
   created_at: string;
   total: number;
   estado: string;
+  estado_pago: string | null;
   metodo_pago: string | null;
   clienteNombre: string;
   clienteEmail: string;

@@ -99,6 +99,7 @@ export async function crearPedido(input: CrearPedidoInput): Promise<CrearPedidoR
       estado: "pendiente",
       direccion_entrega: input.direccionEntrega.trim(),
       metodo_pago: input.metodoPago,
+      estado_pago: input.metodoPago === "mercado_pago" ? "pendiente" : null,
     })
     .select("id")
     .single();

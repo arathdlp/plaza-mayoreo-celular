@@ -12,6 +12,11 @@ import {
   textMuted,
   textSubtle,
 } from "@/lib/design-system";
+import {
+  claseBadgeEstadoPago,
+  etiquetaEstadoPago,
+  mostrarEstadoPago,
+} from "@/lib/pedido-pago";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +44,7 @@ type PedidoRow = {
   id: number;
   created_at: string;
   estado: string;
+  estado_pago: string | null;
   total: number | string;
   metodo_pago: string | null;
   pedido_items: PedidoItemRow[] | null;
@@ -80,6 +86,7 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   const badge =
     badgeEstado[pedido.estado as keyof typeof badgeEstado] ??
     "border-gray-200 bg-gray-100 text-gray-700";
+  const pagoBadge = mostrarEstadoPago(pedido.metodo_pago, pedido.estado_pago);
 
   return (
     <article className={`${cardStatic} p-6 sm:p-7`}>
@@ -98,6 +105,13 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
           <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
             {etiquetaMetodo(pedido.metodo_pago)}
           </span>
+          {pagoBadge ? (
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${claseBadgeEstadoPago(pedido.estado_pago)}`}
+            >
+              {etiquetaEstadoPago(pedido.estado_pago)}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -156,6 +170,7 @@ export default async function PedidosPage({
       id,
       created_at,
       estado,
+      estado_pago,
       total,
       metodo_pago,
       pedido_items (
@@ -186,7 +201,7 @@ export default async function PedidosPage({
     >
       {pago === "exitoso" ? (
         <div role="status" className={`mb-6 ${alertSuccess}`}>
-          Pago recibido correctamente. Tu pedido aparece en la lista con estado pendiente de preparación.
+          Pago recibido correctamente. Tu pedido se actualizará en cuanto Mercado Pago confirme el cobro.
         </div>
       ) : null}
       {pago === "pendiente" ? (
