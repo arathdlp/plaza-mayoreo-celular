@@ -1,7 +1,9 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import VerifyEmailPending from "@/components/auth/VerifyEmailPending";
 import AuthShell, { authFieldClass, authLabelClass } from "@/components/auth/AuthShell";
+import { getAuthEmailRedirectUrl } from "@/lib/auth-email";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -15,19 +17,22 @@ export default function RegistroForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
+  const loginHref =
+    next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login";
+
+  const [step, setStep] = useState<"form" | "verify">("form");
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     if (password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres.");
       return;
@@ -38,10 +43,12 @@ export default function RegistroForm() {
     }
     setLoading(true);
     const supabase = createClient();
+    const trimmedEmail = email.trim();
     const { data, error: signError } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
       options: {
+        emailRedirectTo: getAuthEmailRedirectUrl(),
         data: {
           full_name: fullName.trim(),
           phone: phone.trim(),
@@ -53,13 +60,26 @@ export default function RegistroForm() {
       setError(signError.message);
       return;
     }
-    if (data.session) {
+
+    if (data.session && data.user?.email_confirmed_at) {
       router.push(next);
       router.refresh();
       return;
     }
-    setInfo(
-      "Cuenta creada. Si tu proyecto requiere confirmar el correo, revisa tu bandeja de entrada para activar la cuenta.",
+
+    setRegisteredEmail(trimmedEmail);
+    setStep("verify");
+  }
+
+  if (step === "verify") {
+    return (
+      <AuthShell title="Crear cuenta" subtitle="Un último paso para activar tu cuenta.">
+        <VerifyEmailPending
+          email={registeredEmail}
+          password={password}
+          loginHref={loginHref}
+        />
+      </AuthShell>
     );
   }
 
@@ -75,11 +95,6 @@ export default function RegistroForm() {
             className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
             {error}
-          </div>
-        ) : null}
-        {info ? (
-          <div className="rounded-xl border border-[#0066FF]/30 bg-[#0066FF]/10 px-4 py-3 text-sm text-white/90">
-            {info}
           </div>
         ) : null}
         <div>
@@ -173,7 +188,7 @@ export default function RegistroForm() {
       <p className="mt-8 text-center text-sm text-gray-500">
         ¿Ya tienes cuenta?{" "}
         <Link
-          href={next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+          href={loginHref}
           className="font-semibold text-[#0066FF] transition-colors duration-300 hover:text-[#4d94ff]"
         >
           Inicia sesión
