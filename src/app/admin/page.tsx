@@ -13,7 +13,7 @@ export default function AdminHomePage() {
           Gestiona el catálogo y el ciclo de vida de los pedidos. Solo usuarios autorizados pueden ver esta sección.
         </p>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/admin/productos" className={card}>
             <h2 className="text-xl font-bold text-[#111827]">Productos</h2>
             <p className="mt-3 text-sm leading-relaxed text-gray-500">
@@ -31,6 +31,16 @@ export default function AdminHomePage() {
             </p>
             <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0066FF] group-hover:underline">
               Ir a pedidos →
+            </span>
+          </Link>
+
+          <Link href="/admin/servicios" className={card}>
+            <h2 className="text-xl font-bold text-[#111827]">Servicios</h2>
+            <p className="mt-3 text-sm leading-relaxed text-gray-500">
+              Solicitudes de reparación, desbloqueo, instalación y asesoría desde el formulario público.
+            </p>
+            <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0066FF] group-hover:underline">
+              Ir a servicios →
             </span>
           </Link>
         </div>

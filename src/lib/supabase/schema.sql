@@ -336,7 +336,58 @@ create policy "envios_select_own"
   );
 
 -- ---------------------------------------------------------------------------
--- 6. favoritos
+-- 6. solicitudes_servicio
+-- ---------------------------------------------------------------------------
+create table if not exists public.solicitudes_servicio (
+  id bigint generated always as identity primary key,
+  nombre text not null,
+  telefono text not null,
+  email text not null,
+  tipo_servicio text not null,
+  marca_equipo text,
+  modelo_equipo text,
+  descripcion text not null,
+  estado text not null default 'nueva',
+  created_at timestamptz not null default now(),
+  constraint solicitudes_servicio_tipo_check check (
+    tipo_servicio in ('reparacion', 'desbloqueo', 'instalacion', 'asesoria')
+  ),
+  constraint solicitudes_servicio_estado_check check (
+    estado in ('nueva', 'en_proceso', 'resuelta', 'cancelada')
+  )
+);
+
+comment on table public.solicitudes_servicio is 'Solicitudes de servicio técnico desde /servicios';
+
+create index if not exists solicitudes_servicio_estado_idx on public.solicitudes_servicio (estado);
+create index if not exists solicitudes_servicio_created_at_idx on public.solicitudes_servicio (created_at desc);
+
+alter table public.solicitudes_servicio enable row level security;
+
+drop policy if exists "solicitudes_insert_public" on public.solicitudes_servicio;
+create policy "solicitudes_insert_public"
+  on public.solicitudes_servicio
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "solicitudes_select_admin" on public.solicitudes_servicio;
+create policy "solicitudes_select_admin"
+  on public.solicitudes_servicio
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
+
+drop policy if exists "solicitudes_update_admin" on public.solicitudes_servicio;
+create policy "solicitudes_update_admin"
+  on public.solicitudes_servicio
+  for update
+  to authenticated
+  using (public.app_user_is_admin())
+  with check (public.app_user_is_admin());
+
+-- ---------------------------------------------------------------------------
+-- 7. favoritos
 -- ---------------------------------------------------------------------------
 create table if not exists public.favoritos (
   id uuid primary key default gen_random_uuid(),

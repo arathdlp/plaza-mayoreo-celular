@@ -1,6 +1,8 @@
 import { CONTACT_EMAIL } from "@/lib/contact";
 import { formatoPesos } from "@/lib/format";
 import { getSiteBaseUrl } from "@/lib/mercadopago";
+import { ETIQUETAS_TIPO_SERVICIO } from "@/lib/servicios-labels";
+import type { TipoServicio } from "@/types/servicio";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
@@ -199,6 +201,52 @@ export async function enviarEmailConfirmacionPedido(
     });
   } catch (err) {
     console.error("[email] confirmacion cliente", err);
+  }
+}
+
+export type EmailSolicitudServicio = {
+  id: number;
+  nombre: string;
+  telefono: string;
+  email: string;
+  tipo_servicio: TipoServicio;
+  marca_equipo: string | null;
+  modelo_equipo: string | null;
+  descripcion: string;
+};
+
+export async function enviarEmailNuevaSolicitudServicio(
+  solicitud: EmailSolicitudServicio,
+): Promise<void> {
+  try {
+    const tipo = ETIQUETAS_TIPO_SERVICIO[solicitud.tipo_servicio];
+    const equipo =
+      [solicitud.marca_equipo, solicitud.modelo_equipo].filter(Boolean).join(" ") || "—";
+
+    const html = emailLayout(`
+      <h1 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">
+        Nueva solicitud de servicio #${solicitud.id}
+      </h1>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#374151;">
+        <tr><td style="padding:4px 0;"><strong>Cliente:</strong> ${escapeHtml(solicitud.nombre)}</td></tr>
+        <tr><td style="padding:4px 0;"><strong>Teléfono:</strong> ${escapeHtml(solicitud.telefono)}</td></tr>
+        <tr><td style="padding:4px 0;"><strong>Email:</strong> ${escapeHtml(solicitud.email)}</td></tr>
+        <tr><td style="padding:4px 0;"><strong>Servicio:</strong> ${escapeHtml(tipo)}</td></tr>
+        <tr><td style="padding:4px 0;"><strong>Equipo:</strong> ${escapeHtml(equipo)}</td></tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:14px;color:#111827;line-height:1.6;">
+        <strong>Descripción:</strong><br />
+        ${escapeHtml(solicitud.descripcion).replace(/\n/g, "<br />")}
+      </p>
+    `);
+
+    await enviarEmail({
+      to: CONTACT_EMAIL,
+      subject: `Nueva solicitud de servicio #${solicitud.id} - ${tipo}`,
+      html,
+    });
+  } catch (err) {
+    console.error("[email] nueva solicitud servicio", err);
   }
 }
 

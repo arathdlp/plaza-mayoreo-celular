@@ -16,7 +16,7 @@ import Link from "next/link";
 const quickLinks = [
   { href: "/#inicio", label: "Inicio" },
   { href: "/productos", label: "Productos" },
-  { href: "/#servicios", label: "Servicios" },
+  { href: "/servicios", label: "Servicios" },
   { href: "/#capacitaciones", label: "Capacitaciones" },
   { href: "/#contacto", label: "Contacto" },
 ] as const;
