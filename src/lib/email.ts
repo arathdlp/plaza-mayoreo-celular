@@ -2,9 +2,10 @@ import { CONTACT_EMAIL } from "@/lib/contact";
 import { formatoPesos } from "@/lib/format";
 import { getSiteBaseUrl } from "@/lib/mercadopago";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 
-const FROM_EMAIL = "onboarding@resend.dev";
+const FROM_ADDRESS = "Plaza Mayoreo del Celular <mastecnologiaoficina1@gmail.com>";
 const STORE_NAME = "Plaza Mayoreo del Celular";
 
 export type EmailPedido = {
@@ -26,13 +27,35 @@ export type EmailCliente = {
   telefono?: string;
 };
 
-function getResendClient(): Resend | null {
-  const key = process.env.RESEND_API_KEY?.trim();
-  if (!key) {
-    console.error("[email] RESEND_API_KEY no configurada");
+function createMailTransporter(): Transporter | null {
+  const user = process.env.GMAIL_USER?.trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.trim();
+  if (!user || !pass) {
+    console.error("[email] GMAIL_USER o GMAIL_APP_PASSWORD no configurados");
     return null;
   }
-  return new Resend(key);
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user, pass },
+  });
+}
+
+async function enviarEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  const transporter = createMailTransporter();
+  if (!transporter) return;
+
+  await transporter.sendMail({
+    from: FROM_ADDRESS,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  });
 }
 
 function etiquetaMetodoPago(metodo: string | null): string {
@@ -152,9 +175,6 @@ export async function enviarEmailConfirmacionPedido(
   cliente: EmailCliente,
 ): Promise<void> {
   try {
-    const resend = getResendClient();
-    if (!resend) return;
-
     const pedidosUrl = `${getSiteBaseUrl()}/pedidos`;
     const nombre = cliente.nombre.trim() || "cliente";
 
@@ -172,16 +192,11 @@ export async function enviarEmailConfirmacionPedido(
       ${ctaButton(pedidosUrl, "Ver mi pedido")}
     `);
 
-    const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+    await enviarEmail({
       to: cliente.email.trim(),
       subject: `Tu pedido #${pedido.id} fue recibido - ${STORE_NAME}`,
       html,
     });
-
-    if (error) {
-      console.error("[email] confirmacion cliente", error.message);
-    }
   } catch (err) {
     console.error("[email] confirmacion cliente", err);
   }
@@ -193,9 +208,6 @@ export async function enviarEmailNuevoPedidoAdmin(
   cliente: EmailCliente,
 ): Promise<void> {
   try {
-    const resend = getResendClient();
-    if (!resend) return;
-
     const html = emailLayout(`
       <h1 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">
         Nuevo pedido #${pedido.id}
@@ -209,16 +221,11 @@ export async function enviarEmailNuevoPedidoAdmin(
       ${pedidoResumenHtml(pedido, items)}
     `);
 
-    const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+    await enviarEmail({
       to: CONTACT_EMAIL,
       subject: `Nuevo pedido #${pedido.id} - ${formatoPesos(pedido.total)}`,
       html,
     });
-
-    if (error) {
-      console.error("[email] nuevo pedido admin", error.message);
-    }
   } catch (err) {
     console.error("[email] nuevo pedido admin", err);
   }
@@ -315,9 +322,6 @@ export async function enviarEmailPagoConfirmado(
   cliente: EmailCliente,
 ): Promise<void> {
   try {
-    const resend = getResendClient();
-    if (!resend) return;
-
     const pedidosUrl = `${getSiteBaseUrl()}/pedidos`;
     const nombre = cliente.nombre.trim() || "cliente";
 
@@ -335,16 +339,11 @@ export async function enviarEmailPagoConfirmado(
       ${ctaButton(pedidosUrl, "Ver mi pedido")}
     `);
 
-    const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+    await enviarEmail({
       to: cliente.email.trim(),
       subject: `Tu pago fue confirmado - Pedido #${pedido.id}`,
       html,
     });
-
-    if (error) {
-      console.error("[email] pago confirmado", error.message);
-    }
   } catch (err) {
     console.error("[email] pago confirmado", err);
   }
