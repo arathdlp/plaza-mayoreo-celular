@@ -127,7 +127,7 @@ export default function RegistroForm() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className={authFieldClass}
-            placeholder="443 123 4567"
+            placeholder="443 540 2474"
           />
         </div>
         <div>

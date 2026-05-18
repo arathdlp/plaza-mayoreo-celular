@@ -1,10 +1,9 @@
-const WHATSAPP_E164 = "524439460071";
-const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_E164}`;
+import { CONTACT_WHATSAPP_URL } from "@/lib/contact";
 
 export default function WhatsAppFloat() {
   return (
     <a
-      href={WHATSAPP_HREF}
+      href={CONTACT_WHATSAPP_URL}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/30 ring-2 ring-white/20 transition-transform hover:scale-105 hover:ring-white/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] md:bottom-8 md:right-8 md:h-16 md:w-16"
