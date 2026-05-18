@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL } from "@/lib/contact";
+import { CONTACT_EMAIL, CONTACT_EMAILS_SERVICIOS_ADMIN } from "@/lib/contact";
 import { formatoPesos } from "@/lib/format";
 import { getSiteBaseUrl } from "@/lib/mercadopago";
 import { ETIQUETAS_TIPO_SERVICIO } from "@/lib/servicios-labels";
@@ -241,7 +241,7 @@ export async function enviarEmailNuevaSolicitudServicio(
     `);
 
     await enviarEmail({
-      to: CONTACT_EMAIL,
+      to: CONTACT_EMAILS_SERVICIOS_ADMIN.join(", "),
       subject: `Nueva solicitud de servicio #${solicitud.id} - ${tipo}`,
       html,
     });
