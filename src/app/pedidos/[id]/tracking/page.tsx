@@ -31,7 +31,7 @@ export default async function PedidoTrackingPage({ params }: Props) {
 
   const { data: pedido } = await supabase
     .from("pedidos")
-    .select("id, direccion_entrega")
+    .select("id, direccion_entrega, clientes ( nombre, telefono )")
     .eq("id", pedidoId)
     .eq("cliente_id", user.id)
     .maybeSingle();
@@ -62,5 +62,18 @@ export default async function PedidoTrackingPage({ params }: Props) {
     direccionEntrega: pedido.direccion_entrega as string,
   });
 
-  return <TrackingView pedidoId={pedidoId} initialEnvio={envio} />;
+  const clientes = pedido.clientes as
+    | { nombre: string; telefono: string }
+    | { nombre: string; telefono: string }[]
+    | null;
+  const cli = Array.isArray(clientes) ? clientes[0] : clientes;
+
+  return (
+    <TrackingView
+      pedidoId={pedidoId}
+      initialEnvio={envio}
+      clienteNombre={cli?.nombre}
+      clienteTelefono={cli?.telefono}
+    />
+  );
 }

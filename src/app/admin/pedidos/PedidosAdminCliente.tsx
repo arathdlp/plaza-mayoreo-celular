@@ -1,23 +1,24 @@
 "use client";
 
-import { actualizarEstadoPedido } from "@/app/admin/pedidos/actions";
 import PedidosEnvioModal from "@/app/admin/pedidos/PedidosEnvioModal";
 import type { PedidoAdminRow } from "@/app/admin/pedidos/types";
+import AdminEnvioMiniMap from "@/components/tracking/AdminEnvioMiniMap";
 import { formatoPesos } from "@/lib/format";
 import {
   BADGE_ESTADO_ENVIO,
   ETIQUETAS_ESTADO_ENVIO,
+  envioActivo,
 } from "@/lib/envio-labels";
+import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import {
   claseBadgeEstadoPago,
   etiquetaEstadoPago,
   mostrarEstadoPago,
 } from "@/lib/pedido-pago";
+import { createClient } from "@/lib/supabase/client";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-
-const ESTADOS = ["pendiente", "preparando", "enviado", "entregado"] as const;
+import { useEffect, useState } from "react";
 
 function etiquetaMetodo(m: string | null): string {
   if (m === "mercado_pago") return "Mercado Pago";
@@ -47,12 +48,10 @@ export default function PedidosAdminCliente({
 }: Props) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState(initialPedidos);
-  const [pendingId, setPendingId] = useState<number | null>(null);
   const [envioModal, setEnvioModal] = useState<{
     pedidoId: number;
     envio: EnvioRow | null;
   } | null>(null);
-  const [, startTransition] = useTransition();
 
   useEffect(() => {
     setPedidos(initialPedidos);
@@ -64,21 +63,46 @@ export default function PedidosAdminCliente({
     }
   }, [loadError, loadErrorMessage]);
 
-  function onEstadoChange(pedidoId: number, nuevo: string) {
-    const prev = pedidos;
-    setPedidos((rows) => rows.map((r) => (r.id === pedidoId ? { ...r, estado: nuevo } : r)));
-    setPendingId(pedidoId);
-    startTransition(async () => {
-      const res = await actualizarEstadoPedido(pedidoId, nuevo);
-      setPendingId(null);
-      if (!res.ok) {
-        setPedidos(prev);
-        alert(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("admin-pedidos-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "envios" },
+        (payload) => {
+          if (payload.eventType === "UPDATE" || payload.eventType === "INSERT") {
+            const row = mapEnvioFromDb(payload.new as EnvioDbRow);
+            setPedidos((prev) =>
+              prev.map((p) => (p.id === row.pedido_id ? { ...p, envio: row } : p)),
+            );
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "pedidos" },
+        (payload) => {
+          const row = payload.new as {
+            id: number;
+            estado: string;
+            estado_pago: string | null;
+          };
+          setPedidos((prev) =>
+            prev.map((p) =>
+              p.id === row.id
+                ? { ...p, estado: row.estado, estado_pago: row.estado_pago }
+                : p,
+            ),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <>
@@ -91,14 +115,11 @@ export default function PedidosAdminCliente({
           {loadErrorMessage ? (
             <p className="mt-2 font-mono text-xs text-red-600/90">{loadErrorMessage}</p>
           ) : null}
-          <p className="mt-2 text-xs text-red-600/80">
-            Revisa la consola del servidor (terminal) para el detalle completo de Supabase.
-          </p>
         </div>
       ) : null}
 
       <div className="mt-10 overflow-x-auto rounded-2xl border border-gray-200 bg-white backdrop-blur-sm">
-        <table className="w-full min-w-[1180px] text-left text-sm">
+        <table className="w-full min-w-[1280px] text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-4">ID</th>
@@ -106,16 +127,15 @@ export default function PedidosAdminCliente({
               <th className="px-4 py-4">Fecha</th>
               <th className="px-4 py-4 text-right">Total</th>
               <th className="px-4 py-4">Estado</th>
-              <th className="px-4 py-4">Envío</th>
+              <th className="px-4 py-4">Envío / mapa</th>
               <th className="px-4 py-4">Estado pago</th>
               <th className="px-4 py-4">Método</th>
-              <th className="px-4 py-4">Cambiar estado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {pedidos.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-14 text-center text-gray-500">
+                <td colSpan={8} className="px-4 py-14 text-center text-gray-500">
                   No hay pedidos registrados todavía.
                 </td>
               </tr>
@@ -127,9 +147,10 @@ export default function PedidosAdminCliente({
                 }).format(new Date(p.created_at));
                 const envio = p.envio;
                 const envioEstado = (envio?.estado ?? null) as EstadoEnvio | null;
+                const mapaActivo = envio && envioEstado && envioActivo(envioEstado);
 
                 return (
-                  <tr key={p.id} className="transition-colors hover:bg-gray-50">
+                  <tr key={p.id} className="align-top transition-colors hover:bg-gray-50">
                     <td className="px-4 py-4 font-semibold tabular-nums text-[#111827]">#{p.id}</td>
                     <td className="max-w-[220px] px-4 py-4">
                       <p className="truncate font-medium text-[#111827]">{p.clienteNombre}</p>
@@ -145,8 +166,11 @@ export default function PedidosAdminCliente({
                       <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">
                         {etiquetaEstado(p.estado)}
                       </span>
+                      {envio ? (
+                        <p className="mt-1 text-[10px] text-gray-400">Actualización automática</p>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="min-w-[200px] px-4 py-4">
                       {envio && envioEstado ? (
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
@@ -163,6 +187,21 @@ export default function PedidosAdminCliente({
                       >
                         {envio ? "Gestionar envío" : "Asignar envío"}
                       </button>
+                      {envio ? (
+                        <a
+                          href={`/pedidos/${p.id}/tracking`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 block text-xs font-semibold text-gray-600 hover:text-[#0066FF]"
+                        >
+                          Ver tracking en vivo ↗
+                        </a>
+                      ) : null}
+                      {mapaActivo && envio ? (
+                        <div className="mt-3 w-[200px]">
+                          <AdminEnvioMiniMap envio={envio} />
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-4">
                       {mostrarEstadoPago(p.metodo_pago, p.estado_pago) ? (
@@ -176,20 +215,6 @@ export default function PedidosAdminCliente({
                       )}
                     </td>
                     <td className="px-4 py-4 text-gray-600">{etiquetaMetodo(p.metodo_pago)}</td>
-                    <td className="px-4 py-4">
-                      <select
-                        value={p.estado}
-                        disabled={pendingId === p.id}
-                        onChange={(e) => onEstadoChange(p.id, e.target.value)}
-                        className="w-full max-w-[180px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-[#111827] outline-none transition-colors focus:border-[#0066FF]/50 disabled:opacity-50"
-                      >
-                        {ESTADOS.map((est) => (
-                          <option key={est} value={est}>
-                            {etiquetaEstado(est)}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
                   </tr>
                 );
               })
@@ -202,7 +227,10 @@ export default function PedidosAdminCliente({
         <PedidosEnvioModal
           pedidoId={envioModal.pedidoId}
           envio={envioModal.envio}
-          onClose={() => setEnvioModal(null)}
+          onClose={() => {
+            setEnvioModal(null);
+            router.refresh();
+          }}
         />
       ) : null}
     </>

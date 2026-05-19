@@ -1,4 +1,4 @@
-import { parseEnvioId, validarTokenRepartidor } from "@/lib/envio-repartidor";
+import { getRepartidorContext, parseEnvioId } from "@/lib/envio-repartidor";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -12,10 +12,10 @@ export async function GET(
   }
 
   const token = new URL(request.url).searchParams.get("token");
-  const result = await validarTokenRepartidor(envioId, token);
+  const result = await getRepartidorContext(envioId, token);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
-  return NextResponse.json({ envio: result.envio });
+  return NextResponse.json(result.data);
 }

@@ -114,6 +114,8 @@ export async function asignarEnvioPedido(input: AsignarEnvioInput) {
     envioId = data.id as number;
   }
 
+  await supabase.from("pedidos").update({ estado: "preparando" }).eq("id", input.pedidoId);
+
   revalidatePath("/admin/pedidos");
   revalidatePath("/pedidos");
   revalidatePath(`/pedidos/${input.pedidoId}/tracking`);

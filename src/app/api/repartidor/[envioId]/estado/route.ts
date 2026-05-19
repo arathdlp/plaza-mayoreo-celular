@@ -37,5 +37,8 @@ export async function PATCH(
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    whatsappEntregado: "whatsappEntregado" in result ? result.whatsappEntregado : null,
+  });
 }
