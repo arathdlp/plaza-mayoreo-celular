@@ -36,7 +36,13 @@ export default async function AdminPedidosPage() {
   const { data, error } = await r.supabase
     .from("pedidos")
     .select(
-      "id, cliente_id, created_at, total, estado, estado_pago, metodo_pago, clientes ( nombre, email )",
+      `id, cliente_id, created_at, total, estado, estado_pago, metodo_pago,
+       clientes ( nombre, email ),
+       envios (
+         id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng,
+         direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa,
+         numero_guia, repartidor_token, tiempo_estimado_minutos, updated_at
+       )`,
     )
     .order("created_at", { ascending: false });
 
@@ -56,6 +62,12 @@ export default async function AdminPedidosPage() {
       metodo_pago: (row.metodo_pago as string | null) ?? null,
       clienteNombre: cli.nombre,
       clienteEmail: cli.email,
+      envio: (() => {
+        const e = row.envios;
+        if (!e) return null;
+        const rowE = Array.isArray(e) ? e[0] : e;
+        return rowE ? (rowE as import("@/types/envio").EnvioRow) : null;
+      })(),
     };
   });
 

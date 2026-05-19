@@ -13,10 +13,16 @@ import {
   textSubtle,
 } from "@/lib/design-system";
 import {
+  BADGE_ESTADO_ENVIO,
+  ETIQUETAS_ESTADO_ENVIO,
+  envioActivo,
+} from "@/lib/envio-labels";
+import {
   claseBadgeEstadoPago,
   etiquetaEstadoPago,
   mostrarEstadoPago,
 } from "@/lib/pedido-pago";
+import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -48,6 +54,7 @@ type PedidoRow = {
   total: number | string;
   metodo_pago: string | null;
   pedido_items: PedidoItemRow[] | null;
+  envios: EnvioRow | EnvioRow[] | null;
 };
 
 function parseNum(v: number | string): number {
@@ -75,6 +82,11 @@ function resolverNombreProducto(item: PedidoItemRow): string {
   return row?.nombre?.trim() || `Producto #${item.producto_id}`;
 }
 
+function resolverEnvio(e: PedidoRow["envios"]): EnvioRow | null {
+  if (!e) return null;
+  return Array.isArray(e) ? e[0] ?? null : e;
+}
+
 function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   const total = parseNum(pedido.total);
   const fecha = new Intl.DateTimeFormat("es-MX", {
@@ -83,10 +95,13 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   }).format(new Date(pedido.created_at));
 
   const items = pedido.pedido_items ?? [];
+  const envio = resolverEnvio(pedido.envios);
+  const envioEstado = envio?.estado as EstadoEnvio | undefined;
   const badge =
     badgeEstado[pedido.estado as keyof typeof badgeEstado] ??
     "border-gray-200 bg-gray-100 text-gray-700";
   const pagoBadge = mostrarEstadoPago(pedido.metodo_pago, pedido.estado_pago);
+  const puedeRastrear = envio && envioEstado && envioActivo(envioEstado);
 
   return (
     <article className={`${cardStatic} p-6 sm:p-7`}>
@@ -110,6 +125,13 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
               className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${claseBadgeEstadoPago(pedido.estado_pago)}`}
             >
               {etiquetaEstadoPago(pedido.estado_pago)}
+            </span>
+          ) : null}
+          {envio && envioEstado ? (
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
+            >
+              {ETIQUETAS_ESTADO_ENVIO[envioEstado]}
             </span>
           ) : null}
         </div>
@@ -144,6 +166,21 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
         <span className={`text-sm font-medium ${textMuted}`}>Total del pedido</span>
         <span className={priceLg}>{formatoPesos(total)}</span>
       </div>
+      {puedeRastrear ? (
+        <Link
+          href={`/pedidos/${pedido.id}/tracking`}
+          className={`mt-4 flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold ${btnPrimary}`}
+        >
+          Rastrear pedido
+        </Link>
+      ) : envio && envioEstado === "entregado" ? (
+        <Link
+          href={`/pedidos/${pedido.id}/tracking`}
+          className="mt-4 flex h-11 w-full items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Ver entrega
+        </Link>
+      ) : null}
     </article>
   );
 }
@@ -178,6 +215,11 @@ export default async function PedidosPage({
         precio_unitario,
         producto_id,
         productos ( nombre )
+      ),
+      envios (
+        id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng,
+        direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa,
+        numero_guia, repartidor_token, tiempo_estimado_minutos, updated_at
       )
     `,
     )

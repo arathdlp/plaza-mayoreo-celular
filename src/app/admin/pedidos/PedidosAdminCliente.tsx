@@ -1,13 +1,19 @@
 "use client";
 
 import { actualizarEstadoPedido } from "@/app/admin/pedidos/actions";
+import PedidosEnvioModal from "@/app/admin/pedidos/PedidosEnvioModal";
 import type { PedidoAdminRow } from "@/app/admin/pedidos/types";
 import { formatoPesos } from "@/lib/format";
+import {
+  BADGE_ESTADO_ENVIO,
+  ETIQUETAS_ESTADO_ENVIO,
+} from "@/lib/envio-labels";
 import {
   claseBadgeEstadoPago,
   etiquetaEstadoPago,
   mostrarEstadoPago,
 } from "@/lib/pedido-pago";
+import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
@@ -37,6 +43,10 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
   const router = useRouter();
   const [pedidos, setPedidos] = useState(initialPedidos);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [envioModal, setEnvioModal] = useState<{
+    pedidoId: number;
+    envio: EnvioRow | null;
+  } | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -71,7 +81,7 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
       ) : null}
 
       <div className="mt-10 overflow-x-auto rounded-2xl border border-gray-200 bg-white backdrop-blur-sm">
-        <table className="w-full min-w-[1000px] text-left text-sm">
+        <table className="w-full min-w-[1180px] text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-4">ID</th>
@@ -79,6 +89,7 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
               <th className="px-4 py-4">Fecha</th>
               <th className="px-4 py-4 text-right">Total</th>
               <th className="px-4 py-4">Estado</th>
+              <th className="px-4 py-4">Envío</th>
               <th className="px-4 py-4">Estado pago</th>
               <th className="px-4 py-4">Método</th>
               <th className="px-4 py-4">Cambiar estado</th>
@@ -87,7 +98,7 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
           <tbody className="divide-y divide-gray-100">
             {pedidos.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
+                <td colSpan={9} className="px-4 py-14 text-center text-gray-500">
                   No hay pedidos registrados todavía.
                 </td>
               </tr>
@@ -97,11 +108,14 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
                   dateStyle: "medium",
                   timeStyle: "short",
                 }).format(new Date(p.created_at));
+                const envio = p.envio;
+                const envioEstado = (envio?.estado ?? null) as EstadoEnvio | null;
+
                 return (
                   <tr key={p.id} className="transition-colors hover:bg-gray-50">
                     <td className="px-4 py-4 font-semibold tabular-nums text-[#111827]">#{p.id}</td>
                     <td className="max-w-[220px] px-4 py-4">
-                      <p className="truncate font-medium text-white">{p.clienteNombre}</p>
+                      <p className="truncate font-medium text-[#111827]">{p.clienteNombre}</p>
                       {p.clienteEmail ? (
                         <p className="truncate text-xs text-gray-400">{p.clienteEmail}</p>
                       ) : null}
@@ -114,6 +128,24 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
                       <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">
                         {etiquetaEstado(p.estado)}
                       </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      {envio && envioEstado ? (
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
+                        >
+                          {ETIQUETAS_ESTADO_ENVIO[envioEstado]}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin envío</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEnvioModal({ pedidoId: p.id, envio })}
+                        className="mt-2 block text-xs font-semibold text-[#0066FF] hover:underline"
+                      >
+                        {envio ? "Gestionar envío" : "Asignar envío"}
+                      </button>
                     </td>
                     <td className="px-4 py-4">
                       {mostrarEstadoPago(p.metodo_pago, p.estado_pago) ? (
@@ -132,7 +164,7 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
                         value={p.estado}
                         disabled={pendingId === p.id}
                         onChange={(e) => onEstadoChange(p.id, e.target.value)}
-                        className="w-full max-w-[180px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-white outline-none transition-colors focus:border-[#0066FF]/50 disabled:opacity-50"
+                        className="w-full max-w-[180px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-[#111827] outline-none transition-colors focus:border-[#0066FF]/50 disabled:opacity-50"
                       >
                         {ESTADOS.map((est) => (
                           <option key={est} value={est}>
@@ -148,6 +180,14 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
           </tbody>
         </table>
       </div>
+
+      {envioModal ? (
+        <PedidosEnvioModal
+          pedidoId={envioModal.pedidoId}
+          envio={envioModal.envio}
+          onClose={() => setEnvioModal(null)}
+        />
+      ) : null}
     </>
   );
 }

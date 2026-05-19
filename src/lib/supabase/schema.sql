@@ -153,17 +153,70 @@ create index if not exists pedido_items_producto_id_idx on public.pedido_items (
 create table if not exists public.envios (
   id bigint generated always as identity primary key,
   pedido_id bigint not null unique references public.pedidos (id) on delete cascade,
+  tipo text not null default 'local',
+  estado text not null default 'pendiente',
   lat_actual numeric(10, 7),
   lng_actual numeric(10, 7),
-  estado text not null default 'pendiente',
-  updated_at timestamptz not null default now()
+  destino_lat numeric(10, 7),
+  destino_lng numeric(10, 7),
+  direccion_destino text,
+  repartidor_nombre text,
+  repartidor_telefono text,
+  paqueteria_empresa text,
+  numero_guia text,
+  repartidor_token uuid not null default gen_random_uuid(),
+  tiempo_estimado_minutos integer,
+  updated_at timestamptz not null default now(),
+  constraint envios_tipo_check check (tipo in ('local', 'paqueteria')),
+  constraint envios_estado_check check (estado in ('pendiente', 'en_camino', 'entregado'))
 );
 
 comment on table public.envios is 'Seguimiento de entrega por pedido';
-comment on column public.envios.lat_actual is 'Latitud GPS actual';
-comment on column public.envios.lng_actual is 'Longitud GPS actual';
+comment on column public.envios.lat_actual is 'Latitud GPS actual del repartidor';
+comment on column public.envios.lng_actual is 'Longitud GPS actual del repartidor';
+comment on column public.envios.repartidor_token is 'Token en URL /repartidor/[id]?token=…';
 
 create index if not exists envios_pedido_id_idx on public.envios (pedido_id);
+create unique index if not exists envios_repartidor_token_idx on public.envios (repartidor_token);
+
+-- Migración en proyectos existentes
+alter table public.envios add column if not exists tipo text not null default 'local';
+alter table public.envios add column if not exists destino_lat numeric(10, 7);
+alter table public.envios add column if not exists destino_lng numeric(10, 7);
+alter table public.envios add column if not exists direccion_destino text;
+alter table public.envios add column if not exists repartidor_nombre text;
+alter table public.envios add column if not exists repartidor_telefono text;
+alter table public.envios add column if not exists paqueteria_empresa text;
+alter table public.envios add column if not exists numero_guia text;
+alter table public.envios add column if not exists repartidor_token uuid default gen_random_uuid();
+alter table public.envios add column if not exists tiempo_estimado_minutos integer;
+
+update public.envios set repartidor_token = gen_random_uuid() where repartidor_token is null;
+alter table public.envios alter column repartidor_token set not null;
+
+alter table public.envios drop constraint if exists envios_estado_check;
+alter table public.envios
+  add constraint envios_estado_check check (estado in ('pendiente', 'en_camino', 'entregado'));
+
+alter table public.envios drop constraint if exists envios_tipo_check;
+alter table public.envios
+  add constraint envios_tipo_check check (tipo in ('local', 'paqueteria'));
+
+-- Historial GPS (cada ~15 s desde app repartidor)
+create table if not exists public.ubicaciones_envio (
+  id bigint generated always as identity primary key,
+  envio_id bigint not null references public.envios (id) on delete cascade,
+  lat numeric(10, 7) not null,
+  lng numeric(10, 7) not null,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.ubicaciones_envio is 'Puntos GPS del repartidor por envío';
+
+create index if not exists ubicaciones_envio_envio_id_idx on public.ubicaciones_envio (envio_id);
+create index if not exists ubicaciones_envio_created_at_idx on public.ubicaciones_envio (envio_id, created_at desc);
+
+alter table public.ubicaciones_envio enable row level security;
 
 -- Actualizar updated_at en cada cambio
 create or replace function public.set_envios_updated_at()
@@ -322,6 +375,7 @@ create policy "pedido_items_select_admin"
   using (public.app_user_is_admin());
 
 -- Envíos: lectura si el pedido es del usuario
+drop policy if exists "envios_select_own" on public.envios;
 create policy "envios_select_own"
   on public.envios
   for select
@@ -334,6 +388,52 @@ create policy "envios_select_own"
         and p.cliente_id = auth.uid()
     )
   );
+
+drop policy if exists "envios_select_admin" on public.envios;
+create policy "envios_select_admin"
+  on public.envios
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
+
+drop policy if exists "envios_insert_admin" on public.envios;
+create policy "envios_insert_admin"
+  on public.envios
+  for insert
+  to authenticated
+  with check (public.app_user_is_admin());
+
+drop policy if exists "envios_update_admin" on public.envios;
+create policy "envios_update_admin"
+  on public.envios
+  for update
+  to authenticated
+  using (public.app_user_is_admin())
+  with check (public.app_user_is_admin());
+
+drop policy if exists "ubicaciones_select_own" on public.ubicaciones_envio;
+create policy "ubicaciones_select_own"
+  on public.ubicaciones_envio
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.envios e
+      join public.pedidos p on p.id = e.pedido_id
+      where e.id = envio_id
+        and p.cliente_id = auth.uid()
+    )
+  );
+
+drop policy if exists "ubicaciones_select_admin" on public.ubicaciones_envio;
+create policy "ubicaciones_select_admin"
+  on public.ubicaciones_envio
+  for select
+  to authenticated
+  using (public.app_user_is_admin());
+
+-- Realtime (Supabase Dashboard): habilitar replication en envios y ubicaciones_envio
 
 -- ---------------------------------------------------------------------------
 -- 6. solicitudes_servicio
