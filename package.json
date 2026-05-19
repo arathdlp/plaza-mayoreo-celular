@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "importar-productos": "tsx src/scripts/importar-productos.ts"
+    "importar-productos": "tsx src/scripts/importar-productos.ts",
+    "generate-pwa-icons": "tsx src/scripts/generate-pwa-icons.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.105.4",
     "@types/nodemailer": "^8.0.0",
@@ -28,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.19.4",
     "typescript": "^5"
