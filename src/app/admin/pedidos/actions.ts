@@ -1,13 +1,13 @@
 "use server";
 
-import { getAdminSupabase } from "@/app/admin/_lib/supabase-admin";
+import { getAdminServiceSupabase } from "@/app/admin/_lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 const ESTADOS = ["pendiente", "preparando", "enviado", "entregado"] as const;
 export type EstadoPedidoAdmin = (typeof ESTADOS)[number];
 
 async function db() {
-  const r = await getAdminSupabase();
+  const r = await getAdminServiceSupabase();
   if (!r.ok) throw new Error("Sin permiso de administración.");
   return r.supabase;
 }
@@ -24,7 +24,12 @@ export async function actualizarEstadoPedido(pedidoId: number, estado: string) {
   const { error } = await supabase.from("pedidos").update({ estado }).eq("id", pedidoId);
 
   if (error) {
-    console.error("[admin actualizarEstadoPedido]", error.message);
+    console.error("[admin actualizarEstadoPedido]", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     return { ok: false as const, error: "No se pudo actualizar el pedido." };
   }
 

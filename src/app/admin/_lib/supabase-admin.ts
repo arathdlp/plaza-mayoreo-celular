@@ -1,4 +1,5 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { createClient as createSupabaseJs, type SupabaseClient } from "@supabase/supabase-js";
 
 function parseAdminEmails(): string[] {
@@ -119,4 +120,23 @@ export async function getAdminSupabase(): Promise<AdminGateResult> {
   });
 
   return { ok: true, supabase: svc };
+}
+
+/**
+ * Verifica acceso admin y devuelve cliente con service role (sin RLS).
+ * Usar en listados y mutaciones del panel admin.
+ */
+export async function getAdminServiceSupabase(): Promise<AdminGateResult> {
+  const gate = await getAdminSupabase();
+  if (!gate.ok) return gate;
+
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    console.error(
+      "[getAdminServiceSupabase] SUPABASE_SERVICE_ROLE_KEY no configurada; no se puede omitir RLS.",
+    );
+    return { ok: false, reason: "misconfigured" };
+  }
+
+  return { ok: true, supabase };
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { getAdminSupabase } from "@/app/admin/_lib/supabase-admin";
+import { getAdminServiceSupabase } from "@/app/admin/_lib/supabase-admin";
 import { geocodeAddress, type LatLng } from "@/lib/google-maps";
 import { MORELIA_CENTER } from "@/lib/envio-labels";
 import { TIPOS_ENVIO, type TipoEnvio } from "@/types/envio";
@@ -18,7 +18,7 @@ export type AsignarEnvioInput = {
 };
 
 async function db() {
-  const r = await getAdminSupabase();
+  const r = await getAdminServiceSupabase();
   if (!r.ok) throw new Error("Sin permiso de administración.");
   return r.supabase;
 }
@@ -65,15 +65,14 @@ export async function asignarEnvioPedido(input: AsignarEnvioInput) {
     pedido_id: input.pedidoId,
     tipo: input.tipo,
     estado: "pendiente" as const,
-    direccion_destino: direccion,
     destino_lat: destino.lat,
     destino_lng: destino.lng,
     repartidor_nombre: input.tipo === "local" ? input.repartidorNombre?.trim() : null,
     repartidor_telefono: input.tipo === "local" ? input.repartidorTelefono?.trim() : null,
-    paqueteria_empresa: input.tipo === "paqueteria" ? input.paqueteriaEmpresa?.trim() : null,
+    paqueteria: input.tipo === "paqueteria" ? input.paqueteriaEmpresa?.trim() : null,
     numero_guia: input.tipo === "paqueteria" ? input.numeroGuia?.trim() : null,
-    repartidor_token: token,
-    tiempo_estimado_minutos: input.tiempoEstimadoMinutos ?? null,
+    token,
+    tiempo_estimado: input.tiempoEstimadoMinutos ?? null,
   };
 
   const { data: existing } = await supabase
@@ -87,18 +86,29 @@ export async function asignarEnvioPedido(input: AsignarEnvioInput) {
   if (existing?.id) {
     const { data, error } = await supabase
       .from("envios")
-      .update({ ...row, repartidor_token: token })
+      .update({ ...row, token })
       .eq("id", existing.id)
-      .select("id, repartidor_token")
+      .select("id, token")
       .single();
     if (error || !data) {
+      console.error("[asignarEnvio] update", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
       return { ok: false as const, error: "No se pudo actualizar el envío." };
     }
     envioId = data.id as number;
   } else {
-    const { data, error } = await supabase.from("envios").insert(row).select("id, repartidor_token").single();
+    const { data, error } = await supabase.from("envios").insert(row).select("id, token").single();
     if (error || !data) {
-      console.error("[asignarEnvio]", error?.message);
+      console.error("[asignarEnvio] insert", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
       return { ok: false as const, error: "No se pudo crear el envío." };
     }
     envioId = data.id as number;
@@ -111,6 +121,6 @@ export async function asignarEnvioPedido(input: AsignarEnvioInput) {
   return {
     ok: true as const,
     envioId,
-    token: token,
+    token,
   };
 }

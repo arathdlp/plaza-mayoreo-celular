@@ -1,5 +1,6 @@
+import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import type { EstadoEnvio } from "@/types/envio";
+import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 
 export function parseEnvioId(raw: string): number | null {
   const id = Number.parseInt(raw, 10);
@@ -13,17 +14,27 @@ export async function validarTokenRepartidor(envioId: number, token: string | nu
 
   const { data, error } = await supabase
     .from("envios")
-    .select(
-      "id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng, direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa, numero_guia, tiempo_estimado_minutos, updated_at",
-    )
+    .select(ENVIOS_DB_SELECT)
     .eq("id", envioId)
-    .eq("repartidor_token", token.trim())
+    .eq("token", token.trim())
     .maybeSingle();
 
   if (error || !data) {
     return { ok: false as const, error: "Enlace inválido o expirado." };
   }
-  return { ok: true as const, envio: data };
+
+  const row = data as unknown as EnvioDbRow;
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("direccion_entrega")
+    .eq("id", row.pedido_id)
+    .maybeSingle();
+
+  const envio: EnvioRow = mapEnvioFromDb(row, {
+    direccionEntrega: (pedido?.direccion_entrega as string | undefined) ?? null,
+  });
+
+  return { ok: true as const, envio };
 }
 
 export async function registrarUbicacionRepartidor(

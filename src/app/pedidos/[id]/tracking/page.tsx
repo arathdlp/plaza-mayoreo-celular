@@ -1,7 +1,7 @@
 import TrackingView from "@/app/pedidos/[id]/tracking/TrackingView";
+import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
-import type { EnvioRow } from "@/types/envio";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,22 +31,20 @@ export default async function PedidoTrackingPage({ params }: Props) {
 
   const { data: pedido } = await supabase
     .from("pedidos")
-    .select("id")
+    .select("id, direccion_entrega")
     .eq("id", pedidoId)
     .eq("cliente_id", user.id)
     .maybeSingle();
 
   if (!pedido) notFound();
 
-  const { data: envio } = await supabase
+  const { data: envioRaw } = await supabase
     .from("envios")
-    .select(
-      "id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng, direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa, numero_guia, repartidor_token, tiempo_estimado_minutos, updated_at",
-    )
+    .select(ENVIOS_DB_SELECT)
     .eq("pedido_id", pedidoId)
     .maybeSingle();
 
-  if (!envio) {
+  if (!envioRaw) {
     return (
       <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
         <h1 className="text-xl font-bold text-[#111827]">Sin envío asignado</h1>
@@ -60,5 +58,9 @@ export default async function PedidoTrackingPage({ params }: Props) {
     );
   }
 
-  return <TrackingView pedidoId={pedidoId} initialEnvio={envio as EnvioRow} />;
+  const envio = mapEnvioFromDb(envioRaw as unknown as EnvioDbRow, {
+    direccionEntrega: pedido.direccion_entrega as string,
+  });
+
+  return <TrackingView pedidoId={pedidoId} initialEnvio={envio} />;
 }

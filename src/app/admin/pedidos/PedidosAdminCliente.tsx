@@ -37,9 +37,14 @@ function etiquetaEstado(e: string): string {
 type Props = {
   initialPedidos: PedidoAdminRow[];
   loadError: boolean;
+  loadErrorMessage?: string | null;
 };
 
-export default function PedidosAdminCliente({ initialPedidos, loadError }: Props) {
+export default function PedidosAdminCliente({
+  initialPedidos,
+  loadError,
+  loadErrorMessage,
+}: Props) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState(initialPedidos);
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -52,6 +57,12 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
   useEffect(() => {
     setPedidos(initialPedidos);
   }, [initialPedidos]);
+
+  useEffect(() => {
+    if (loadError && loadErrorMessage) {
+      console.error("[admin/pedidos] Error al cargar pedidos:", loadErrorMessage);
+    }
+  }, [loadError, loadErrorMessage]);
 
   function onEstadoChange(pedidoId: number, nuevo: string) {
     const prev = pedidos;
@@ -77,6 +88,12 @@ export default function PedidosAdminCliente({ initialPedidos, loadError }: Props
           className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           No se pudieron cargar los pedidos desde Supabase.
+          {loadErrorMessage ? (
+            <p className="mt-2 font-mono text-xs text-red-600/90">{loadErrorMessage}</p>
+          ) : null}
+          <p className="mt-2 text-xs text-red-600/80">
+            Revisa la consola del servidor (terminal) para el detalle completo de Supabase.
+          </p>
         </div>
       ) : null}
 

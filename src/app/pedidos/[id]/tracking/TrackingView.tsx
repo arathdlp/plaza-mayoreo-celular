@@ -7,6 +7,7 @@ import {
   ETIQUETAS_TIPO_ENVIO,
   urlTrackingPaqueteria,
 } from "@/lib/envio-labels";
+import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { parseCoord, resolveDestino, type LatLng } from "@/lib/google-maps";
 import { createClient } from "@/lib/supabase/client";
 import type { EnvioRow, EstadoEnvio, TipoEnvio } from "@/types/envio";
@@ -50,8 +51,11 @@ export default function TrackingView({ pedidoId, initialEnvio }: Props) {
           filter: `id=eq.${envio.id}`,
         },
         (payload) => {
-          const row = payload.new as EnvioRow;
-          setEnvio((prev) => ({ ...prev, ...row }));
+          const row = mapEnvioFromDb(payload.new as EnvioDbRow);
+          setEnvio((prev) => ({
+            ...row,
+            direccion_destino: prev.direccion_destino,
+          }));
         },
       )
       .subscribe();

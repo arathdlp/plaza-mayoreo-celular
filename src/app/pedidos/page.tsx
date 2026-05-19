@@ -22,6 +22,7 @@ import {
   etiquetaEstadoPago,
   mostrarEstadoPago,
 } from "@/lib/pedido-pago";
+import { ENVIOS_DB_COLUMNS, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
@@ -46,16 +47,19 @@ type PedidoItemRow = {
   productos: ProductoNombre | ProductoNombre[] | null;
 };
 
-type PedidoRow = {
+type PedidoRowRaw = {
   id: number;
   created_at: string;
   estado: string;
   estado_pago: string | null;
   total: number | string;
   metodo_pago: string | null;
+  direccion_entrega: string;
   pedido_items: PedidoItemRow[] | null;
-  envios: EnvioRow | EnvioRow[] | null;
+  envios: EnvioDbRow | EnvioDbRow[] | null;
 };
+
+type PedidoRow = Omit<PedidoRowRaw, "envios"> & { envio: EnvioRow | null };
 
 function parseNum(v: number | string): number {
   return typeof v === "string" ? parseFloat(v) : v;
@@ -82,9 +86,18 @@ function resolverNombreProducto(item: PedidoItemRow): string {
   return row?.nombre?.trim() || `Producto #${item.producto_id}`;
 }
 
-function resolverEnvio(e: PedidoRow["envios"]): EnvioRow | null {
+function resolverEnvioDb(e: PedidoRowRaw["envios"]): EnvioDbRow | null {
   if (!e) return null;
   return Array.isArray(e) ? e[0] ?? null : e;
+}
+
+function mapPedidoRow(raw: PedidoRowRaw): PedidoRow {
+  const envioDb = resolverEnvioDb(raw.envios);
+  const envio = envioDb
+    ? mapEnvioFromDb(envioDb, { direccionEntrega: raw.direccion_entrega })
+    : null;
+  const { envios: _envios, ...rest } = raw;
+  return { ...rest, envio };
 }
 
 function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
@@ -95,7 +108,7 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   }).format(new Date(pedido.created_at));
 
   const items = pedido.pedido_items ?? [];
-  const envio = resolverEnvio(pedido.envios);
+  const envio = pedido.envio;
   const envioEstado = envio?.estado as EstadoEnvio | undefined;
   const badge =
     badgeEstado[pedido.estado as keyof typeof badgeEstado] ??
@@ -210,6 +223,7 @@ export default async function PedidosPage({
       estado_pago,
       total,
       metodo_pago,
+      direccion_entrega,
       pedido_items (
         cantidad,
         precio_unitario,
@@ -217,16 +231,14 @@ export default async function PedidosPage({
         productos ( nombre )
       ),
       envios (
-        id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng,
-        direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa,
-        numero_guia, repartidor_token, tiempo_estimado_minutos, updated_at
+        ${ENVIOS_DB_COLUMNS}
       )
     `,
     )
     .eq("cliente_id", user.id)
     .order("created_at", { ascending: false });
 
-  const pedidos = (pedidosRaw ?? []) as unknown as PedidoRow[];
+  const pedidos = ((pedidosRaw ?? []) as unknown as PedidoRowRaw[]).map(mapPedidoRow);
 
   return (
     <PrivateChrome

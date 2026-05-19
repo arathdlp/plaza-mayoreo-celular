@@ -1,7 +1,10 @@
-import { getAdminSupabase } from "@/app/admin/_lib/supabase-admin";
+import { getAdminServiceSupabase } from "@/app/admin/_lib/supabase-admin";
 import PedidosAdminCliente from "@/app/admin/pedidos/PedidosAdminCliente";
 import type { PedidoAdminRow } from "@/app/admin/pedidos/types";
+import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { pageMetadata } from "@/lib/seo";
+import type { EnvioRow } from "@/types/envio";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -12,11 +15,54 @@ export const metadata: Metadata = pageMetadata({
   noindex: true,
 });
 
+const PEDIDOS_SELECT = `
+  id,
+  cliente_id,
+  created_at,
+  total,
+  estado,
+  estado_pago,
+  metodo_pago,
+  direccion_entrega,
+  clientes ( nombre, email )
+`;
+
+const PEDIDOS_SELECT_LEGACY = `
+  id,
+  cliente_id,
+  created_at,
+  total,
+  estado,
+  direccion_entrega,
+  clientes ( nombre, email )
+`;
+
+function logSupabaseError(scope: string, error: PostgrestError) {
+  console.error(`[admin/pedidos] ${scope}`, {
+    message: error.message,
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
 function num(v: number | string): number {
   return typeof v === "string" ? parseFloat(v) : v;
 }
 
 type ClienteEmbed = { nombre: string; email: string } | { nombre: string; email: string }[] | null;
+
+type PedidoQueryRow = {
+  id: number;
+  cliente_id: string;
+  created_at: string;
+  total: number | string;
+  estado: string;
+  estado_pago?: string | null;
+  metodo_pago?: string | null;
+  direccion_entrega: string;
+  clientes: ClienteEmbed;
+};
 
 function resolverCliente(c: ClienteEmbed): { nombre: string; email: string } {
   if (!c) return { nombre: "—", email: "" };
@@ -27,49 +73,86 @@ function resolverCliente(c: ClienteEmbed): { nombre: string; email: string } {
   };
 }
 
+async function fetchPedidosRows(supabase: SupabaseClient) {
+  const full = await supabase.from("pedidos").select(PEDIDOS_SELECT).order("created_at", {
+    ascending: false,
+  });
+
+  if (!full.error) return full;
+
+  logSupabaseError("pedidos (select completo)", full.error);
+  const legacy = await supabase.from("pedidos").select(PEDIDOS_SELECT_LEGACY).order("created_at", {
+    ascending: false,
+  });
+  if (legacy.error) {
+    logSupabaseError("pedidos (select legacy)", legacy.error);
+  }
+  return legacy;
+}
+
+async function fetchEnviosByPedidoIds(
+  supabase: SupabaseClient,
+  pedidoIds: number[],
+): Promise<{ map: Map<number, EnvioRow>; error: PostgrestError | null }> {
+  const map = new Map<number, EnvioRow>();
+  if (pedidoIds.length === 0) return { map, error: null };
+
+  const { data, error } = await supabase
+    .from("envios")
+    .select(ENVIOS_DB_SELECT)
+    .in("pedido_id", pedidoIds);
+
+  if (error) {
+    logSupabaseError("envios", error);
+    return { map, error };
+  }
+
+  for (const row of data ?? []) {
+    const mapped = mapEnvioFromDb(row as unknown as EnvioDbRow);
+    map.set(mapped.pedido_id, mapped);
+  }
+  return { map, error: null };
+}
+
 export default async function AdminPedidosPage() {
-  const r = await getAdminSupabase();
+  const r = await getAdminServiceSupabase();
   if (!r.ok) {
     redirect("/dashboard");
   }
 
-  const { data, error } = await r.supabase
-    .from("pedidos")
-    .select(
-      `id, cliente_id, created_at, total, estado, estado_pago, metodo_pago,
-       clientes ( nombre, email ),
-       envios (
-         id, pedido_id, tipo, estado, lat_actual, lng_actual, destino_lat, destino_lng,
-         direccion_destino, repartidor_nombre, repartidor_telefono, paqueteria_empresa,
-         numero_guia, repartidor_token, tiempo_estimado_minutos, updated_at
-       )`,
-    )
-    .order("created_at", { ascending: false });
+  const pedidosResult = await fetchPedidosRows(r.supabase);
+  const loadError = pedidosResult.error;
+  const rows = (pedidosResult.data ?? []) as PedidoQueryRow[];
 
-  if (error) {
-    console.error("[admin/pedidos]", error.message);
+  const pedidoIds = rows.map((p) => p.id);
+  const { map: envioByPedidoId, error: enviosError } = await fetchEnviosByPedidoIds(
+    r.supabase,
+    pedidoIds,
+  );
+
+  if (enviosError) {
+    console.warn("[admin/pedidos] Pedidos cargados sin datos de envío.");
   }
 
-  const pedidos: PedidoAdminRow[] = (data ?? []).map((row: Record<string, unknown>) => {
-    const cli = resolverCliente(row.clientes as ClienteEmbed);
+  const pedidos: PedidoAdminRow[] = rows.map((row) => {
+    const cli = resolverCliente(row.clientes);
     return {
-      id: row.id as number,
-      cliente_id: row.cliente_id as string,
-      created_at: row.created_at as string,
-      total: num(row.total as number | string),
-      estado: row.estado as string,
-      estado_pago: (row.estado_pago as string | null) ?? null,
-      metodo_pago: (row.metodo_pago as string | null) ?? null,
+      id: row.id,
+      cliente_id: row.cliente_id,
+      created_at: row.created_at,
+      total: num(row.total),
+      estado: row.estado,
+      estado_pago: row.estado_pago ?? null,
+      metodo_pago: row.metodo_pago ?? null,
       clienteNombre: cli.nombre,
       clienteEmail: cli.email,
-      envio: (() => {
-        const e = row.envios;
-        if (!e) return null;
-        const rowE = Array.isArray(e) ? e[0] : e;
-        return rowE ? (rowE as import("@/types/envio").EnvioRow) : null;
-      })(),
+      envio: envioByPedidoId.get(row.id) ?? null,
     };
   });
+
+  const loadErrorMessage = loadError
+    ? `${loadError.message}${loadError.hint ? ` (${loadError.hint})` : ""}`
+    : null;
 
   return (
     <main className="relative px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
@@ -82,7 +165,11 @@ export default async function AdminPedidosPage() {
           </p>
         </div>
 
-        <PedidosAdminCliente initialPedidos={pedidos} loadError={!!error} />
+        <PedidosAdminCliente
+          initialPedidos={pedidos}
+          loadError={!!loadError}
+          loadErrorMessage={loadErrorMessage}
+        />
       </div>
     </main>
   );
