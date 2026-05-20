@@ -61,6 +61,13 @@ async function authorizeEnvioAccess(
 
   const row = data as unknown as EnvioDbRow;
   const token = opts.token?.trim();
+  console.log("[API UBICACION] Envío encontrado:", {
+    id: row.id,
+    estado: row.estado,
+    hasStoredToken: Boolean(row.token),
+    tokenMatches: Boolean(token && row.token === token),
+    repartidorMatches: Boolean(opts.repartidorId && row.repartidor_id === opts.repartidorId),
+  });
 
   if (token && row.token === token) {
     return { ok: true, row };
@@ -217,25 +224,26 @@ export async function registrarUbicacionRepartidor(
   const auth = await validarTokenRepartidor(envioId, token, repartidorId);
   if (!auth.ok) return auth;
 
-  if (auth.envio.estado === "entregado") {
-    return { ok: false as const, error: "El envío ya fue entregado." };
-  }
-  if (auth.envio.estado !== "en_camino" && auth.envio.estado !== "llegando") {
-    return { ok: false as const, error: "Inicia la entrega primero." };
-  }
-
   const supabase = createServiceRoleClient()!;
-  const { error: insErr } = await supabase.from("ubicaciones_envio").insert({
-    envio_id: envioId,
-    lat,
-    lng,
-  });
-  if (insErr) {
-    console.error("[ubicacion envio]", insErr.message);
-    return { ok: false as const, error: "No se pudo guardar la ubicación." };
+  const envio = auth.envio;
+
+  if (auth.envio.estado === "entregado") {
+    console.log("[API UBICACION] Ignorada porque el envío ya fue entregado", { envioId });
+    return { ok: true as const, estado: auth.envio.estado, ignored: true };
   }
 
-  const envio = auth.envio;
+  if (auth.envio.estado === "en_camino" || auth.envio.estado === "llegando") {
+    const { error: insErr } = await supabase.from("ubicaciones_envio").insert({
+      envio_id: envioId,
+      lat,
+      lng,
+    });
+    if (insErr) {
+      console.error("[ubicacion envio]", insErr.message);
+      return { ok: false as const, error: "No se pudo guardar la ubicación." };
+    }
+  }
+
   const dLat = parseCoord(envio.destino_lat);
   const dLng = parseCoord(envio.destino_lng);
   let nuevoEstado = envio.estado;
@@ -253,6 +261,7 @@ export async function registrarUbicacionRepartidor(
     .update({
       lat_actual: lat,
       lng_actual: lng,
+      updated_at: new Date().toISOString(),
       ...(nuevoEstado !== envio.estado ? { estado: nuevoEstado } : {}),
     })
     .eq("id", envioId);

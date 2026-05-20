@@ -35,11 +35,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
 
 const INTERVAL_MS = REPARTIDOR_GPS_INTERVAL_MS;
-const GEO_OPTIONS: PositionOptions = {
+const FAST_GEO_OPTIONS: PositionOptions = {
+  enableHighAccuracy: false,
+  maximumAge: 60_000,
+  timeout: 5_000,
+};
+const WATCH_GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   maximumAge: 0,
-  timeout: 15_000,
+  timeout: 30_000,
 };
+
+function isLikelyMobile(): boolean {
+  if (typeof navigator === "undefined") return true;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
 
 const NavigationMap = dynamic(
   () => import("@/components/tracking/NavigationMap"),
@@ -207,6 +217,7 @@ export default function RepartidorView() {
   const [stats, setStats] = useState<NavigationStats | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -325,8 +336,7 @@ export default function RepartidorView() {
       lastPosRef.current = next;
       lastPosTimeRef.current = now;
       setCurrentPosition(next);
-      const estadoEnvio = ctxRef.current?.envio.estado;
-      if (estadoEnvio === "en_camino" || estadoEnvio === "llegando") {
+      if (ctxRef.current) {
         void sendUbicacion(next.lat, next.lng);
       }
     },
@@ -355,10 +365,14 @@ export default function RepartidorView() {
       },
       (err) => {
         console.warn("[REPARTIDOR] watchPosition error", err);
-        setGeoError(err.message);
+        setGeoError(
+          err.code === 3
+            ? "Buscando tu ubicación, asegúrate de tener GPS activado"
+            : err.message,
+        );
         if (err.code === 1) setGpsPermission("denied");
       },
-      GEO_OPTIONS,
+      WATCH_GEO_OPTIONS,
     );
 
     intervalRef.current = setInterval(tick, INTERVAL_MS);
@@ -376,25 +390,34 @@ export default function RepartidorView() {
     setGeoError(null);
     setGpsPermission("pending");
     console.log("[REPARTIDOR] Solicitando permiso de geolocalización");
+    startTracking();
     navigator.geolocation.getCurrentPosition(
       (p) => {
         console.log("[REPARTIDOR] Ubicación obtenida:", p.coords.latitude, p.coords.longitude);
         applyPosition(p);
+        setGeoError(null);
         setGpsPermission("granted");
-        startTracking();
       },
       (err) => {
         console.error("[REPARTIDOR] Error GPS:", err.code, err.message);
-        setGeoError(err.message);
+        setGeoError(
+          err.code === 3
+            ? "Buscando tu ubicación, asegúrate de tener GPS activado"
+            : err.message,
+        );
         if (err.code === 1) setGpsPermission("denied");
       },
-      GEO_OPTIONS,
+      FAST_GEO_OPTIONS,
     );
   }, [applyPosition, startTracking]);
 
   useEffect(() => {
     requestCurrentPosition();
   }, [requestCurrentPosition]);
+
+  useEffect(() => {
+    setIsDesktop(!isLikelyMobile());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -548,13 +571,21 @@ export default function RepartidorView() {
         },
         (err) => {
           console.error("[REPARTIDOR] Error GPS al iniciar:", err.code, err.message);
-          setGeoError(err.message);
-          setError("Activa el permiso de ubicación para iniciar.");
-          setGpsPermission("denied");
+          setGeoError(
+            err.code === 3
+              ? "Buscando tu ubicación, asegúrate de tener GPS activado"
+              : err.message,
+          );
+          setError(
+            err.code === 1
+              ? "Activa el permiso de ubicación para iniciar."
+              : "No pudimos obtener tu ubicación aún. Intenta de nuevo en unos segundos.",
+          );
+          if (err.code === 1) setGpsPermission("denied");
           setBusy(false);
           resolve();
         },
-        GEO_OPTIONS,
+        FAST_GEO_OPTIONS,
       );
     });
   }
@@ -614,6 +645,8 @@ export default function RepartidorView() {
   const entregado = estado === "entregado";
   const trackingActivo = estado === "en_camino" || estado === "llegando";
   const showWakeBanner = gpsPermission === "granted";
+  const showGeoBanner = Boolean(geoError) || isDesktop;
+  const topBannerText = geoError ?? "Estás en computadora. El GPS funciona mejor en celular.";
   const destino = resolveDestino(envio);
   const hasDestinoCoords = parseCoord(envio.destino_lat) != null && parseCoord(envio.destino_lng) != null;
   const hasDireccionDestino = Boolean(ctx.pedido.direccion_entrega?.trim());
@@ -642,13 +675,18 @@ export default function RepartidorView() {
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 pb-28 text-[#111827]">
-      {showWakeBanner ? (
+      {showGeoBanner ? (
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-400 px-4 py-2.5 text-center text-sm font-semibold text-amber-950 shadow-lg">
+          <MapPin className="h-4 w-4 shrink-0" />
+          {topBannerText}
+        </div>
+      ) : showWakeBanner ? (
         <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 bg-[#0066FF] px-4 py-2.5 text-sm font-semibold text-white shadow-lg">
           <Signal className="h-4 w-4" />
           Mantén esta pestaña abierta durante la entrega
         </div>
       ) : null}
-      <header className={`sticky z-40 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur ${showWakeBanner ? "top-9" : "top-0"}`}>
+      <header className={`sticky z-40 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur ${showWakeBanner || showGeoBanner ? "top-9" : "top-0"}`}>
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">{cliente.nombre}</p>
