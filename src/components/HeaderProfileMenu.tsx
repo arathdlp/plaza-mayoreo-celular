@@ -49,7 +49,7 @@ export default function HeaderProfileMenu({ profile, size = "md" }: HeaderProfil
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={`flex items-center justify-center rounded-full bg-[#0066FF] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-transform hover:scale-105 active:scale-95 ${
-          size === "sm" ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm"
+          size === "sm" ? "h-10 w-10 text-xs" : "h-11 w-11 text-sm"
         }`}
         aria-expanded={open}
         aria-haspopup="menu"

@@ -4,7 +4,7 @@ import HeaderProfileMenu, { type HeaderProfile } from "@/components/HeaderProfil
 import { useCarrito } from "@/hooks/useCarrito";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { motion } from "framer-motion";
-import { ShoppingCart, User } from "lucide-react";
+import { Heart, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -23,7 +23,7 @@ function FavoritosBadge() {
   const { total, listo } = useFavoritos();
   if (!listo || total <= 0) return null;
   return (
-    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
+    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#0066FF] px-[5px] text-[10px] font-bold leading-none text-white shadow-md ring-2 ring-white">
       {total > 99 ? "99+" : total}
     </span>
   );
@@ -69,9 +69,6 @@ function NavLink({ href, children }: { href: string; children: ReactNode }) {
 
 const adminNavClassDesktop =
   "text-[0.9375rem] font-semibold text-[#0066FF] transition-colors duration-300 ease-out hover:text-[#3385ff]";
-const adminNavClassMobile =
-  "rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-[#0066FF] transition-colors hover:bg-[#0066FF]/8 hover:text-[#3385ff]";
-
 function CartIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -94,41 +91,12 @@ function CartIcon({ className }: { className?: string }) {
   );
 }
 
-function MenuIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      {open ? (
-        <>
-          <path d="M18 6 6 18" />
-          <path d="M6 6l12 12" />
-        </>
-      ) : (
-        <>
-          <path d="M4 6h16" />
-          <path d="M4 12h16" />
-          <path d="M4 18h16" />
-        </>
-      )}
-    </svg>
-  );
-}
-
 type HeaderClientProps = {
   isAdmin: boolean;
   profile: HeaderProfile | null;
 };
 
 export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
-  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -188,14 +156,22 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
         </nav>
 
         <motion.div
-          className="flex items-center gap-1.5 sm:gap-3"
+          className="flex items-center gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.4 }}
         >
           <Link
             href="/favoritos"
-            className="relative hidden h-11 w-11 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-red-500 active:scale-95 sm:flex"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95 md:hidden"
+            aria-label="Favoritos"
+          >
+            <Heart className="h-6 w-6" />
+            <FavoritosBadge />
+          </Link>
+          <Link
+            href="/favoritos"
+            className="relative hidden h-11 w-11 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-red-500 active:scale-95 md:flex"
             aria-label="Favoritos"
           >
             <HeartIcon />
@@ -203,19 +179,19 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
           </Link>
           <Link
             href="/carrito"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95 md:h-11 md:w-11"
             aria-label="Carrito de compras"
           >
-            <ShoppingCart className="h-6 w-6 sm:hidden" />
-            <CartIcon className="hidden sm:block" />
+            <ShoppingCart className="h-6 w-6 md:hidden" />
+            <CartIcon className="hidden md:block" />
             <CarritoBadge />
           </Link>
           {profile ? (
             <>
-              <div className="sm:hidden">
+              <div className="md:hidden">
                 <HeaderProfileMenu profile={profile} size="sm" />
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden md:block">
                 <HeaderProfileMenu profile={profile} />
               </div>
             </>
@@ -223,58 +199,21 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
             <>
               <Link
                 href="/login"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition-all duration-300 ease-out hover:text-[#0066FF] active:scale-[0.97] sm:hidden"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition-all duration-300 ease-out hover:text-[#0066FF] active:scale-[0.97] md:hidden"
                 aria-label="Iniciar sesión"
               >
                 <User className="h-5 w-5" />
               </Link>
               <Link
                 href="/login"
-                className="hidden rounded-full bg-[#0066FF] px-5 py-2.5 text-[0.9375rem] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97] sm:inline-flex"
+                className="hidden rounded-full bg-[#0066FF] px-5 py-2.5 text-[0.9375rem] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97] md:inline-flex"
               >
                 Iniciar Sesión
               </Link>
             </>
           )}
-          {!profile ? (
-            <button
-              type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100 md:hidden"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              aria-controls="mobile-menu"
-              aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            >
-              <MenuIcon open={open} />
-            </button>
-          ) : null}
         </motion.div>
       </motion.div>
-
-      <div
-        id="mobile-menu"
-        className={`relative border-t border-gray-100 bg-white/95 backdrop-blur-md transition-all duration-300 ease-out md:hidden ${
-          open ? "max-h-[28rem] opacity-100" : "max-h-0 overflow-hidden border-t-transparent opacity-0"
-        }`}
-      >
-        <nav className="flex flex-col gap-1 px-4 py-4" aria-label="Móvil">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
-              onClick={() => setOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-          {isAdmin ? (
-            <Link href="/admin" className={adminNavClassMobile} onClick={() => setOpen(false)}>
-              Admin
-            </Link>
-          ) : null}
-        </nav>
-      </div>
     </motion.header>
   );
 }
