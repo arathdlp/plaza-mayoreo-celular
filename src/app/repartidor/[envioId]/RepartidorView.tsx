@@ -1,7 +1,6 @@
 "use client";
 
 import { mensajeWhatsAppEnCamino, mensajeWhatsAppEntregado, urlWhatsApp } from "@/lib/contact-links";
-import NavigationMap from "@/components/tracking/NavigationMap";
 import PagoBadges from "@/components/pedidos/PagoBadges";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
@@ -28,6 +27,7 @@ import {
   VolumeX,
   Wallet,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -38,8 +38,20 @@ const INTERVAL_MS = REPARTIDOR_GPS_INTERVAL_MS;
 const GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   maximumAge: 0,
-  timeout: 10_000,
+  timeout: 15_000,
 };
+
+const NavigationMap = dynamic(
+  () => import("@/components/tracking/NavigationMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full animate-pulse items-center justify-center bg-gray-100 px-6 text-center text-sm font-medium text-gray-500">
+        Obteniendo tu ubicación...
+      </div>
+    ),
+  },
+);
 
 type GpsPermission = "pending" | "granted" | "denied";
 
@@ -55,23 +67,55 @@ function savePendingPosition(envioId: string, lat: number, lng: number) {
   }
 }
 
+function clearPendingPosition(envioId: string) {
+  try {
+    localStorage.removeItem(pendingPosKey(envioId));
+  } catch {
+    /* ignore */
+  }
+}
+
 function etiquetaMetodo(m: string | null): string {
   if (m === "mercado_pago") return "Mercado Pago";
   return "Pagar al recibir";
 }
 
-function GpsBlockedScreen() {
+function GpsBlockedScreen({
+  message,
+  onRetry,
+}: {
+  message: string | null;
+  onRetry: () => void;
+}) {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-50 px-6 text-center">
       <MapPin className="h-12 w-12 text-[#0066FF]" />
       <h1 className="mt-4 text-xl font-semibold text-[#111827]">Activa tu ubicación</h1>
-      <p className="mt-3 max-w-md text-sm text-gray-600">
-        La app del repartidor necesita GPS para navegar y enviar tu posición al cliente. En Chrome o Safari,
-        abre el candado de la barra de dirección, permite Ubicación y recarga esta página.
-      </p>
-      <p className="mt-4 text-xs text-gray-500">
-        En iPhone: Ajustes del sitio → Ubicación → Permitir. En Android Chrome: Permisos → Ubicación.
-      </p>
+      <div className="mt-4 max-w-md space-y-4 text-left text-sm text-gray-600">
+        <p>
+          La app del repartidor necesita GPS para navegar y enviar tu posición al cliente.
+          {message ? ` Error: ${message}` : ""}
+        </p>
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <p className="font-semibold text-[#111827]">Chrome</p>
+          <p>1. Toca el candado o controles del sitio junto a la URL.</p>
+          <p>2. En Permisos, cambia Ubicación a Permitir.</p>
+          <p>3. Vuelve a esta página y presiona Reintentar.</p>
+        </div>
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <p className="font-semibold text-[#111827]">Safari</p>
+          <p>1. Abre Ajustes del sitio web para esta página.</p>
+          <p>2. En Ubicación, selecciona Permitir.</p>
+          <p>3. Regresa a la app y presiona Reintentar.</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-6 rounded-2xl bg-[#0066FF] px-6 py-3 text-sm font-semibold text-white shadow-sm"
+      >
+        Reintentar
+      </button>
     </div>
   );
 }
@@ -90,6 +134,7 @@ export default function RepartidorView() {
 
   const [ctx, setCtx] = useState<RepartidorContext | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [gpsPermission, setGpsPermission] = useState<GpsPermission>("pending");
   const [busy, setBusy] = useState(false);
@@ -142,7 +187,7 @@ export default function RepartidorView() {
           body: JSON.stringify({ ...authBody(), lat, lng }),
         });
         if (!res.ok) throw new Error("upload failed");
-        savePendingPosition(envioId, lat, lng);
+        clearPendingPosition(envioId);
       } catch {
         savePendingPosition(envioId, lat, lng);
         console.warn("[REPARTIDOR] No se pudo enviar ubicación, guardada localmente");
@@ -174,7 +219,7 @@ export default function RepartidorView() {
   );
 
   const startTracking = useCallback(() => {
-    if (!navigator.geolocation || trackingStartedRef.current) return;
+    if (typeof window === "undefined" || !navigator.geolocation || trackingStartedRef.current) return;
     trackingStartedRef.current = true;
 
     const tick = () => {
@@ -188,7 +233,8 @@ export default function RepartidorView() {
       },
       (err) => {
         console.warn("[REPARTIDOR] watchPosition error", err);
-        setGpsPermission("denied");
+        setGeoError(err.message);
+        if (err.code === 1) setGpsPermission("denied");
       },
       GEO_OPTIONS,
     );
@@ -198,26 +244,35 @@ export default function RepartidorView() {
     console.log("[REPARTIDOR] watchPosition activo");
   }, [applyPosition, sendUbicacion]);
 
-  useEffect(() => {
+  const requestCurrentPosition = useCallback(() => {
+    if (typeof window === "undefined") return;
     if (!navigator.geolocation) {
+      setGeoError("Tu navegador no soporta geolocalización");
       setGpsPermission("denied");
       return;
     }
+    setGeoError(null);
+    setGpsPermission("pending");
     console.log("[REPARTIDOR] Solicitando permiso de geolocalización");
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        console.log("[REPARTIDOR] Primera posición obtenida");
+        console.log("[REPARTIDOR] Ubicación obtenida:", p.coords.latitude, p.coords.longitude);
         applyPosition(p);
         setGpsPermission("granted");
         startTracking();
       },
       (err) => {
-        console.warn("[REPARTIDOR] Geolocalización denegada", err);
-        setGpsPermission("denied");
+        console.error("[REPARTIDOR] Error GPS:", err.code, err.message);
+        setGeoError(err.message);
+        if (err.code === 1) setGpsPermission("denied");
       },
       GEO_OPTIONS,
     );
   }, [applyPosition, startTracking]);
+
+  useEffect(() => {
+    requestCurrentPosition();
+  }, [requestCurrentPosition]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("pmc_repartidor_voice");
@@ -346,7 +401,7 @@ export default function RepartidorView() {
   }
 
   async function iniciarEntrega() {
-    if (!navigator.geolocation) {
+    if (typeof window === "undefined" || !navigator.geolocation) {
       setError("Tu navegador no soporta GPS.");
       return;
     }
@@ -358,11 +413,16 @@ export default function RepartidorView() {
           lastPosRef.current = next;
           lastPosTimeRef.current = p.timestamp || Date.now();
           setCurrentPosition(next);
+          setGeoError(null);
+          setGpsPermission("granted");
+          startTracking();
           await requestWakeLock();
           await patchEstado("en_camino");
           resolve();
         },
-        () => {
+        (err) => {
+          console.error("[REPARTIDOR] Error GPS al iniciar:", err.code, err.message);
+          setGeoError(err.message);
           setError("Activa el permiso de ubicación para iniciar.");
           setGpsPermission("denied");
           setBusy(false);
@@ -401,7 +461,7 @@ export default function RepartidorView() {
   }
 
   if (gpsPermission === "denied") {
-    return <GpsBlockedScreen />;
+    return <GpsBlockedScreen message={geoError} onRetry={requestCurrentPosition} />;
   }
 
   if (!ctx || !envio) return null;
@@ -417,7 +477,7 @@ export default function RepartidorView() {
       ? { lat: activePosition.lat, lng: activePosition.lng }
       : null;
   const step = stats?.currentStep;
-  const routeHint = stats?.routeError ?? (gpsPermission === "pending" ? "Obteniendo tu ubicación…" : null);
+  const routeHint = stats?.routeError ?? geoError ?? (gpsPermission === "pending" ? "Obteniendo tu ubicación..." : null);
   const actionLabel =
     estado === "pendiente"
       ? "Iniciar entrega"
@@ -493,10 +553,21 @@ export default function RepartidorView() {
               className="h-full"
             />
           ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
-              {gpsPermission === "pending"
-                ? "Esperando permiso de ubicación…"
-                : "Activa el permiso de ubicación para iniciar la navegación integrada."}
+            <div className="flex h-full flex-col items-center justify-center bg-gray-100 px-6 text-center">
+              <div className="mb-4 h-28 w-28 animate-pulse rounded-full bg-white shadow-sm" />
+              <p className="text-sm font-medium text-gray-700">
+                {geoError ?? "Obteniendo tu ubicación..."}
+              </p>
+              <p className="mt-2 max-w-xs text-xs text-gray-500">
+                Si el navegador no muestra el permiso automáticamente, toca el botón para activarlo.
+              </p>
+              <button
+                type="button"
+                onClick={requestCurrentPosition}
+                className="mt-5 rounded-2xl bg-[#0066FF] px-5 py-3 text-sm font-semibold text-white shadow-sm"
+              >
+                Activar ubicación
+              </button>
             </div>
           )}
         </section>

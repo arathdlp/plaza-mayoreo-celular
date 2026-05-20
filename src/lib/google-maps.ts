@@ -12,7 +12,7 @@ function ensureGoogleMapsOptions(): void {
     setOptions({
       key,
       v: "weekly",
-      libraries: ["maps", "marker", "geometry", "geocoding"],
+      libraries: ["maps", "marker", "geometry", "geocoding", "places"],
     });
     configured = true;
   }

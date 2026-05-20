@@ -465,10 +465,14 @@ export default function NavigationMap({
   }, [current, onStats, speak, speedKmh]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`h-full w-full bg-slate-100 ${className}`}
-      aria-label="Mapa de navegación"
-    />
+    <div className={`relative h-full w-full bg-slate-100 ${className}`} aria-label="Mapa de navegación">
+      <div ref={containerRef} className="h-full w-full" />
+      {!mapReady ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 px-6 text-center">
+          <div className="mb-4 h-28 w-28 animate-pulse rounded-full bg-white shadow-sm" />
+          <p className="text-sm font-medium text-slate-600">Obteniendo tu ubicación...</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
