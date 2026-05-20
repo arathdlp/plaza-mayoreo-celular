@@ -1,6 +1,6 @@
 "use client";
 
-import { mensajeWhatsAppEnCamino, mensajeWhatsAppEntregado, urlWhatsApp } from "@/lib/contact-links";
+import { mensajeWhatsAppEnCamino, urlWhatsApp } from "@/lib/contact-links";
 import PagoBadges from "@/components/pedidos/PagoBadges";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Bike,
+  CheckCircle,
   Clock,
   Gauge,
   MapPin,
@@ -210,6 +210,66 @@ function FatalScreen({ title, message }: { title: string; message: string }) {
         </a>
       </div>
     </div>
+  );
+}
+
+function DriverCompletedScreen({ pedidoId }: { pedidoId: number }) {
+  return (
+    <main className="relative flex min-h-[100dvh] overflow-hidden bg-[#0066FF] px-6 py-10 text-white">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        {Array.from({ length: 22 }).map((_, i) => (
+          <motion.span
+            key={i}
+            className="absolute block rounded-full bg-white/30"
+            style={{
+              left: `${(i * 29) % 100}%`,
+              top: `${(i * 17) % 100}%`,
+              width: i % 4 === 0 ? 14 : 6,
+              height: i % 4 === 0 ? 2 : 6,
+            }}
+            initial={{ opacity: 0, y: 16, scale: 0.7 }}
+            animate={{ opacity: [0, 0.5, 0], y: [-8, -54], scale: [0.7, 1, 0.9] }}
+            transition={{ duration: 2.6, delay: (i % 8) * 0.14, repeat: Infinity, repeatDelay: 1.8 }}
+          />
+        ))}
+      </div>
+
+      <section className="relative z-10 mx-auto flex w-full max-w-sm flex-col items-center justify-center text-center">
+        <motion.div
+          initial={{ scale: 0.72, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 180, damping: 14 }}
+          className="flex h-28 w-28 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20"
+        >
+          <CheckCircle className="h-20 w-20 text-white" strokeWidth={1.6} />
+        </motion.div>
+        <motion.h1
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="mt-8 text-3xl font-bold tracking-tight"
+        >
+          Entrega completada
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="mt-3 text-sm font-medium text-white/75"
+        >
+          Pedido #{pedidoId} registrado
+        </motion.p>
+        <motion.a
+          href="/repartidor/dashboard"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-10 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[#0066FF] shadow-sm"
+        >
+          Volver al inicio
+        </motion.a>
+      </section>
+    </main>
   );
 }
 
@@ -800,12 +860,13 @@ export default function RepartidorView() {
         : entregado
           ? "Entrega completada"
           : "Actualizar entrega";
-  const waEntregado = cliente.telefono
-    ? urlWhatsApp(cliente.telefono, mensajeWhatsAppEntregado(ctx.pedido.id))
-    : null;
   const waCliente = cliente.telefono
     ? urlWhatsApp(cliente.telefono, mensajeWhatsAppEnCamino(cliente.nombre, ctx.pedido.id))
     : null;
+
+  if (entregado) {
+    return <DriverCompletedScreen pedidoId={ctx.pedido.id} />;
+  }
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 pb-28 text-[#111827]">
@@ -1057,29 +1118,18 @@ export default function RepartidorView() {
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 p-4 backdrop-blur">
         <div className="mx-auto max-w-2xl">
-          {entregado ? (
-            <a
-              href={waEntregado ?? "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-16 w-full items-center justify-center rounded-2xl bg-emerald-500 text-base font-medium text-white"
-            >
-              Avisar al cliente
-            </a>
-          ) : (
-            <ShimmerButton
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                estado === "pendiente"
-                  ? void iniciarEntrega()
-                  : setConfirmEntregaOpen(true)
-              }
-              className={`h-16 w-full ${estado === "pendiente" ? "bg-[#0066FF]" : "bg-emerald-500"}`}
-            >
-              {busy ? "Guardando" : actionLabel}
-            </ShimmerButton>
-          )}
+          <ShimmerButton
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              estado === "pendiente"
+                ? void iniciarEntrega()
+                : setConfirmEntregaOpen(true)
+            }
+            className={`h-16 w-full ${estado === "pendiente" ? "bg-[#0066FF]" : "bg-emerald-500"}`}
+          >
+            {busy ? "Guardando" : actionLabel}
+          </ShimmerButton>
         </div>
       </div>
     </div>

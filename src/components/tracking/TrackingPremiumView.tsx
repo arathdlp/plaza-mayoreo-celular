@@ -2,9 +2,9 @@
 
 import ProductoImagen from "@/components/ProductoImagen";
 import CelularConstruccion, { mapCelularVisualEstado } from "@/components/tracking/CelularConstruccion";
+import EntregaCompletada from "@/components/tracking/EntregaCompletada";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { Particles } from "@/components/ui/particles";
 import { mensajeClienteARepartidor, urlWhatsApp } from "@/lib/contact-links";
 import { ETIQUETAS_ESTADO_ENVIO } from "@/lib/envio-labels";
 import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
@@ -18,7 +18,6 @@ import { REPARTIDOR_GPS_INTERVAL_MS, type EnvioRow, type EstadoEnvio } from "@/t
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
-  Bike,
   CheckCircle,
   ChevronDown,
   Clock,
@@ -256,6 +255,28 @@ export default function TrackingPremiumView({
     );
   }
 
+  if (estado === "entregado") {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="entrega-completada"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <EntregaCompletada
+            pedidoId={pedidoId}
+            horaEntrega={envio.updated_at}
+            repartidorNombre={envio.repartidor_nombre}
+            ticketHref={`/api/pedidos/${pedidoId}/ticket`}
+            backHref={backHref}
+          />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] bg-white text-[#111827]">
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur">
@@ -274,7 +295,6 @@ export default function TrackingPremiumView({
 
       <main className="mx-auto max-w-2xl pb-10">
         <section className="relative overflow-hidden px-6 py-8 text-center">
-          {estado === "entregado" ? <Particles /> : null}
           <CelularConstruccion visualEstado={visualCelular} />
           <h1 className="mt-5 text-2xl font-medium tracking-tight">{estadoTexto(estado)}</h1>
           <p className="mt-2 text-sm text-gray-500">

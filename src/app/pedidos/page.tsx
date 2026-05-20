@@ -19,6 +19,7 @@ import {
 } from "@/lib/envio-labels";
 import PagoBadges from "@/components/pedidos/PagoBadges";
 import PedidoTicketButtons from "@/components/pedidos/PedidoTicketButtons";
+import { MiniEntregaBadge } from "@/components/tracking/EntregaCompletada";
 import { ENVIOS_DB_COLUMNS, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { pedidoTrackingHref } from "@/lib/pedido-tracking";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
@@ -126,11 +127,15 @@ function PedidoTarjeta({ pedido, ticketBaseUrl }: { pedido: PedidoRow; ticketBas
           </span>
           <PagoBadges metodoPago={pedido.metodo_pago} estadoPago={pedido.estado_pago} />
           {envio && envioEstado ? (
-            <span
-              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
-            >
-              {ETIQUETAS_ESTADO_ENVIO[envioEstado]}
-            </span>
+            envioEstado === "entregado" ? (
+              <MiniEntregaBadge />
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
+              >
+                {ETIQUETAS_ESTADO_ENVIO[envioEstado]}
+              </span>
+            )
           ) : null}
         </div>
       </div>
