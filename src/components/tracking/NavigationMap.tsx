@@ -13,6 +13,8 @@ import {
   type NavigationStats,
   type RouteStepInfo,
 } from "@/lib/tracking-navigation";
+import { Navigation } from "lucide-react";
+import { toast } from "sonner";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LOG_PREFIX = "[REPARTIDOR]";
@@ -245,7 +247,12 @@ export default function NavigationMap({
 
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
   const [destReady, setDestReady] = useState(false);
+  const [siguiendoRepartidor, setSiguiendoRepartidor] = useState(true);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeElapsed, setRouteElapsed] = useState(0);
+  const [offline, setOffline] = useState(false);
 
   onStatsRef.current = onStats;
 
@@ -291,8 +298,12 @@ export default function NavigationMap({
         const map = new google.maps.Map(containerRef.current, {
           center: current ?? destination,
           zoom: 15,
-          disableDefaultUI: true,
+          disableDefaultUI: false,
           gestureHandling: interactive ? "greedy" : "none",
+          zoomControl: true,
+          scrollwheel: true,
+          draggable: true,
+          disableDoubleClickZoom: false,
           clickableIcons: false,
           styles: [
             { featureType: "poi", stylers: [{ visibility: "off" }] },
@@ -300,6 +311,8 @@ export default function NavigationMap({
           ],
         });
 
+        map.addListener("dragstart", () => setSiguiendoRepartidor(false));
+        map.addListener("zoom_changed", () => setSiguiendoRepartidor(false));
         mapRef.current = map;
         console.log(`${LOG_PREFIX} Mapa cargado`);
         setMapReady(true);
@@ -376,7 +389,7 @@ export default function NavigationMap({
           console.log(`${LOG_PREFIX} Destino resuelto`, geo);
         } else {
           console.warn(`${MAP_ERROR_PREFIX} Geocoding falló para destino`);
-          setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+          setRouteError("No se pudo calcular la ruta. Verificar dirección del cliente.");
           onStatsRef.current?.({
             distanceText: "—",
             durationText: "—",
@@ -388,7 +401,7 @@ export default function NavigationMap({
         }
       } catch (err) {
         console.error(`${MAP_ERROR_PREFIX} Error resolviendo destino`, err);
-        setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+        setRouteError("No se pudo calcular la ruta. Verificar dirección del cliente.");
         onStatsRef.current?.({
           distanceText: "—",
           durationText: "—",
@@ -505,7 +518,7 @@ export default function NavigationMap({
           displayPosRef.current = next;
           const rot = bearingDegrees(display, next);
           updateMarkerPosition(next, rot);
-          if (followCurrent) mapRef.current?.panTo(next);
+          if (followCurrent && siguiendoRepartidor) mapRef.current?.panTo(next);
         }
         animFrameRef.current = requestAnimationFrame(animate);
       };
@@ -518,7 +531,7 @@ export default function NavigationMap({
         animFrameRef.current = null;
       }
     };
-  }, [current, followCurrent, mapReady, updateMarkerPosition]);
+  }, [current, followCurrent, mapReady, siguiendoRepartidor, updateMarkerPosition]);
 
   useEffect(() => {
     if (!mapReady || pulseIntervalRef.current) return;
@@ -552,7 +565,7 @@ export default function NavigationMap({
     const map = mapRef.current;
     const origin = current;
     const dest = destinationRef.current;
-    if (!map || !origin || !dest || resolvingDestRef.current) return;
+    if (!map || !origin || !dest || resolvingDestRef.current || offline) return;
 
     const shouldRoute =
       !lastRouteOriginRef.current ||
@@ -567,7 +580,9 @@ export default function NavigationMap({
     console.log(`${LOG_PREFIX} Routes API computeRoutes`, { origin, dest });
 
     try {
-      setMapError(null);
+      setRouteError(null);
+      setRouteLoading(true);
+      setRouteElapsed(0);
       const response = await calcularRuta(origin, dest);
       if (routeRequestIdRef.current !== requestId) return;
 
@@ -596,6 +611,7 @@ export default function NavigationMap({
       const stats = routeStatsFromRoutesApi(route, speedKmh, 0, steps);
       lastStatsRef.current = stats;
       onStatsRef.current?.(stats);
+      setRouteError(null);
       console.log(`${LOG_PREFIX} Ruta calculada con Routes API, pasos:`, steps.length);
 
       if (!followCurrent) {
@@ -608,7 +624,7 @@ export default function NavigationMap({
     } catch (err) {
       const message = err instanceof Error ? err.message : directionsErrorMessage("ROUTES_API_FORBIDDEN");
       console.error(`${MAP_ERROR_PREFIX} Error en Routes API`, err);
-      setMapError(message);
+      setRouteError(message);
       onStatsRef.current?.({
         distanceText: "—",
         durationText: "—",
@@ -617,8 +633,10 @@ export default function NavigationMap({
         speedKmh,
         routeError: message,
       });
+    } finally {
+      setRouteLoading(false);
     }
-  }, [current, followCurrent, speedKmh]);
+  }, [current, followCurrent, offline, speedKmh]);
 
   const actualizarPasoActual = useCallback(
     (posActual: LatLng) => {
@@ -674,12 +692,101 @@ export default function NavigationMap({
       lastRouteOriginRef.current = null;
     }
     void requestRoute();
+    if (siguiendoRepartidor) mapRef.current?.panTo(current);
+  }, [mapReady, current, destReady, requestRoute, actualizarPasoActual, siguiendoRepartidor]);
+
+  useEffect(() => {
+    if (!routeLoading) {
+      setRouteElapsed(0);
+      return;
+    }
+    const started = Date.now();
+    const id = setInterval(() => setRouteElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [routeLoading]);
+
+  const resetAndRetryRoute = useCallback(() => {
+    geocodedRef.current = false;
+    lastRouteOriginRef.current = null;
+    routePathRef.current = [];
+    setRouteError(null);
+    void requestRoute();
+  }, [requestRoute]);
+
+  useEffect(() => {
+    const onReconectado = () => {
+      setOffline(false);
+      toast("Conexión restaurada, recalculando ruta...");
+      geocodedRef.current = false;
+      lastRouteOriginRef.current = null;
+      routePathRef.current = [];
+      setRouteError(null);
+      void requestRoute();
+    };
+    const onSinSenal = () => {
+      setOffline(true);
+      setRouteLoading(false);
+    };
+
+    setOffline(typeof navigator !== "undefined" ? !navigator.onLine : false);
+    window.addEventListener("online", onReconectado);
+    window.addEventListener("offline", onSinSenal);
+    return () => {
+      window.removeEventListener("online", onReconectado);
+      window.removeEventListener("offline", onSinSenal);
+    };
+  }, [requestRoute]);
+
+  const centerOnCurrent = useCallback(() => {
+    if (!current) return;
+    setSiguiendoRepartidor(true);
     mapRef.current?.panTo(current);
-  }, [mapReady, current, destReady, requestRoute, actualizarPasoActual]);
+  }, [current]);
+
+  const routeLoadingText =
+    routeElapsed < 5
+      ? "Calculando ruta..."
+      : routeElapsed < 10
+        ? "Esto está tardando más de lo normal..."
+        : "";
 
   return (
     <div className={`relative h-full w-full bg-slate-100 ${className}`} aria-label="Mapa de navegación">
       <div ref={containerRef} className="h-full w-full" />
+      {current ? (
+        <button
+          type="button"
+          onClick={centerOnCurrent}
+          aria-label="Centrar en mi ubicación"
+          className="absolute bottom-5 right-5 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-[#0066FF] text-white shadow-lg"
+        >
+          <Navigation className="h-5 w-5" />
+        </button>
+      ) : null}
+      {offline ? (
+        <div className="absolute inset-x-4 top-4 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900 shadow-sm">
+          Sin conexión. Las indicaciones pueden no actualizarse.
+        </div>
+      ) : null}
+      {routeLoading && !mapError ? (
+        <div className="absolute inset-x-4 bottom-20 z-10 rounded-2xl border border-gray-200 bg-white/95 px-4 py-3 text-center text-sm font-medium text-gray-700 shadow-sm">
+          {routeElapsed >= 10 ? (
+            <button type="button" onClick={resetAndRetryRoute} className="font-semibold text-[#0066FF]">
+              Reintentar ruta
+            </button>
+          ) : (
+            routeLoadingText
+          )}
+        </div>
+      ) : null}
+      {routeError && !mapError ? (
+        <div className="absolute inset-x-4 bottom-20 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs text-amber-900 shadow-sm">
+          <p>{routeError}</p>
+          <button type="button" onClick={resetAndRetryRoute} className="mt-2 font-semibold text-[#0066FF]">
+            Reintentar ruta
+          </button>
+        </div>
+      ) : null}
       {mapError ? (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 px-6 text-center">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

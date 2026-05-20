@@ -8,7 +8,7 @@ import { getRepartidorSession } from "@/lib/repartidor-session";
 import { ESTADOS_ENVIO, type EstadoEnvio } from "@/types/envio";
 import { NextResponse } from "next/server";
 
-export async function PATCH(
+async function handleEstado(
   request: Request,
   context: { params: Promise<{ envioId: string }> },
 ) {
@@ -53,4 +53,18 @@ export async function PATCH(
     ok: true,
     whatsappEntregado: "whatsappEntregado" in result ? result.whatsappEntregado : null,
   });
+}
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ envioId: string }> },
+) {
+  return handleEstado(request, context);
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ envioId: string }> },
+) {
+  return handleEstado(request, context);
 }

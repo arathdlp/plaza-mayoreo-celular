@@ -30,6 +30,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
@@ -45,6 +46,19 @@ const WATCH_GEO_OPTIONS: PositionOptions = {
   maximumAge: 0,
   timeout: 30_000,
 };
+const ENTREGA_PENDIENTE_KEY = "entrega_pendiente";
+
+type EntregaPendiente = {
+  envioId: string;
+  token: string;
+  timestamp: number;
+};
+
+type EntregaButtonState =
+  | { kind: "idle" }
+  | { kind: "intentando" }
+  | { kind: "reintentando"; intento: number; total: number }
+  | { kind: "sin_conexion" };
 
 function isLikelyMobile(): boolean {
   if (typeof navigator === "undefined") return true;
@@ -219,6 +233,8 @@ export default function RepartidorView() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [confirmEntregaOpen, setConfirmEntregaOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [entregaButtonState, setEntregaButtonState] = useState<EntregaButtonState>({ kind: "idle" });
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -239,6 +255,23 @@ export default function RepartidorView() {
     },
     [envioId, token],
   );
+
+  const saveEntregaPendiente = useCallback(() => {
+    try {
+      const pending: EntregaPendiente = { envioId, token, timestamp: Date.now() };
+      localStorage.setItem(ENTREGA_PENDIENTE_KEY, JSON.stringify(pending));
+    } catch {
+      /* ignore */
+    }
+  }, [envioId, token]);
+
+  const clearEntregaPendiente = useCallback(() => {
+    try {
+      localStorage.removeItem(ENTREGA_PENDIENTE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const fetchCtx = useCallback(async () => {
     const url = apiUrl("");
@@ -550,6 +583,53 @@ export default function RepartidorView() {
     await fetchCtx();
   }
 
+  const marcarEntregadoConRetry = useCallback(
+    async (intentos = 3): Promise<boolean> => {
+      const coords = lastPosRef.current;
+      setBusy(true);
+      for (let i = 0; i < intentos; i += 1) {
+        try {
+          setEntregaButtonState(i === 0 ? { kind: "intentando" } : { kind: "reintentando", intento: i + 1, total: intentos });
+          const res = await fetch(apiUrl("/estado"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              ...authBody(),
+              estado: "entregado",
+              ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+            }),
+            signal: AbortSignal.timeout(10_000),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            await releaseWakeLock();
+            if (json.whatsappEntregado) {
+              window.open(json.whatsappEntregado as string, "_blank", "noopener,noreferrer");
+            }
+            clearEntregaPendiente();
+            setEntregaButtonState({ kind: "idle" });
+            setBusy(false);
+            await fetchCtx();
+            toast("Entrega registrada correctamente");
+            return true;
+          }
+        } catch {
+          /* retry below */
+        }
+        if (i < intentos - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+      saveEntregaPendiente();
+      setEntregaButtonState({ kind: "sin_conexion" });
+      setBusy(false);
+      toast("Sin conexión. Se enviará cuando haya señal");
+      return false;
+    },
+    [apiUrl, authBody, clearEntregaPendiente, fetchCtx, releaseWakeLock, saveEntregaPendiente],
+  );
+
   async function iniciarEntrega() {
     if (typeof window === "undefined" || !navigator.geolocation) {
       setError("Tu navegador no soporta GPS.");
@@ -593,8 +673,47 @@ export default function RepartidorView() {
 
   async function confirmarEntrega() {
     setConfirmEntregaOpen(false);
-    await patchEstado("entregado");
+    await marcarEntregadoConRetry();
   }
+
+  const reenviarEntregaPendiente = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(ENTREGA_PENDIENTE_KEY);
+      if (!raw) return;
+      const pending = JSON.parse(raw) as EntregaPendiente;
+      const isFresh = Date.now() - pending.timestamp < 24 * 60 * 60 * 1000;
+      if (!isFresh || pending.envioId !== envioId || pending.token !== token) {
+        localStorage.removeItem(ENTREGA_PENDIENTE_KEY);
+        return;
+      }
+      const ok = await marcarEntregadoConRetry();
+      if (ok) clearEntregaPendiente();
+    } catch {
+      /* ignore */
+    }
+  }, [envioId, marcarEntregadoConRetry, token]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onOnline = () => {
+      setIsOnline(true);
+      void reenviarEntregaPendiente();
+    };
+    const onOffline = () => {
+      setIsOnline(false);
+      setEntregaButtonState({ kind: "sin_conexion" });
+    };
+
+    setIsOnline(navigator.onLine);
+    if (navigator.onLine) void reenviarEntregaPendiente();
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [reenviarEntregaPendiente]);
 
   if (loading) {
     return <LoadingScreen timedOut={loadingTimedOut} onRetry={loadContext} />;
@@ -670,8 +789,14 @@ export default function RepartidorView() {
   const actionLabel =
     estado === "pendiente"
       ? "Iniciar entrega"
-      : trackingActivo
-        ? "Marcar como entregado"
+      : trackingActivo && entregaButtonState.kind === "intentando"
+        ? "Registrando entrega..."
+        : trackingActivo && entregaButtonState.kind === "reintentando"
+          ? `Reintentando... (${entregaButtonState.intento}/${entregaButtonState.total})`
+        : trackingActivo && (!isOnline || entregaButtonState.kind === "sin_conexion")
+          ? "Sin conexión. Se enviará cuando haya señal"
+        : trackingActivo
+          ? "Marcar como entregado"
         : entregado
           ? "Entrega completada"
           : "Actualizar entrega";
