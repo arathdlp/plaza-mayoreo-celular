@@ -325,7 +325,14 @@ export default function RepartidorView() {
   );
 
   const startTracking = useCallback(() => {
-    if (typeof window === "undefined" || !navigator.geolocation || trackingStartedRef.current) return;
+    if (
+      typeof window === "undefined" ||
+      !navigator.geolocation ||
+      trackingStartedRef.current ||
+      watchIdRef.current != null
+    ) {
+      return;
+    }
     trackingStartedRef.current = true;
 
     const tick = () => {
@@ -422,6 +429,7 @@ export default function RepartidorView() {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    trackingStartedRef.current = false;
   }, []);
 
   const envio = ctx?.envio;

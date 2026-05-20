@@ -48,15 +48,15 @@ export default function TrackingMap({
   const destinoMarkerRef = useRef<google.maps.Marker | null>(null);
   const repartidorMarkerRef = useRef<google.maps.Marker | null>(null);
   const pulseMarkerRef = useRef<google.maps.Marker | null>(null);
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+  const routePolylineRef = useRef<google.maps.Polyline | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      if (!containerRef.current) return;
+      if (!containerRef.current || mapRef.current) return;
       await loadGoogleMaps();
-      if (cancelled || !containerRef.current) return;
+      if (cancelled || !containerRef.current || mapRef.current) return;
 
       const center = repartidor ?? destino ?? MORELIA_CENTER;
       const map = new google.maps.Map(containerRef.current, {
@@ -73,21 +73,16 @@ export default function TrackingMap({
       mapRef.current = map;
 
       destinoMarkerRef.current = makeMarker(map, destino, MARKER_DESTINO, "Destino", 2);
-
-      directionsRendererRef.current = new google.maps.DirectionsRenderer({
-        map,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: "#0066FF",
-          strokeOpacity: 0.85,
-          strokeWeight: mini ? 3 : 5,
-        },
-      });
     }
 
     void init();
     return () => {
       cancelled = true;
+      destinoMarkerRef.current?.setMap(null);
+      repartidorMarkerRef.current?.setMap(null);
+      pulseMarkerRef.current?.setMap(null);
+      routePolylineRef.current?.setMap(null);
+      mapRef.current = null;
     };
   }, [mini, interactive]);
 
@@ -125,29 +120,15 @@ export default function TrackingMap({
         pulseMarkerRef.current?.setPosition(repartidor);
       }
 
-      const directionsService = new google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: repartidor,
-          destination: destino,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            directionsRendererRef.current?.setDirections(result);
-          } else {
-            directionsRendererRef.current?.setMap(null);
-            new google.maps.Polyline({
-              path: [repartidor, destino],
-              geodesic: true,
-              strokeColor: "#0066FF",
-              strokeOpacity: 0.85,
-              strokeWeight: mini ? 3 : 5,
-              map,
-            });
-          }
-        },
-      );
+      routePolylineRef.current?.setMap(null);
+      routePolylineRef.current = new google.maps.Polyline({
+        path: [repartidor, destino],
+        geodesic: true,
+        strokeColor: "#0066FF",
+        strokeOpacity: 0.85,
+        strokeWeight: mini ? 3 : 5,
+        map,
+      });
 
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(repartidor);
@@ -158,7 +139,8 @@ export default function TrackingMap({
       repartidorMarkerRef.current = null;
       pulseMarkerRef.current?.setMap(null);
       pulseMarkerRef.current = null;
-      directionsRendererRef.current?.setMap(null);
+      routePolylineRef.current?.setMap(null);
+      routePolylineRef.current = null;
       map.setCenter(destino);
       map.setZoom(mini ? 13 : 14);
     }

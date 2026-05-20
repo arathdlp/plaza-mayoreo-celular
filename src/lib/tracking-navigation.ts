@@ -7,6 +7,7 @@ export type RouteStepInfo = {
   distanceValue: number;
   durationValue: number;
   maneuver?: string;
+  endLocation?: LatLng;
 };
 
 export type NavigationStats = {
@@ -21,21 +22,10 @@ export type NavigationStats = {
   stepCount?: number;
 };
 
-export function stepsFromDirectionsLeg(
-  leg: google.maps.DirectionsLeg | undefined,
-): RouteStepInfo[] {
-  if (!leg?.steps?.length) return [];
-  return leg.steps.map((step) => ({
-    instruction: cleanInstruction(step.instructions ?? ""),
-    distanceText: step.distance?.text ?? formatDistance(step.distance?.value ?? 0),
-    durationText: step.duration?.text ?? formatDuration(step.duration?.value ?? 0),
-    distanceValue: step.distance?.value ?? 0,
-    durationValue: step.duration?.value ?? 0,
-    maneuver: step.maneuver,
-  }));
-}
-
 export function directionsErrorMessage(status: string): string {
+  if (status === "ROUTES_API_FORBIDDEN") {
+    return "Google Routes API no está habilitada. Actívala en Google Cloud Console.";
+  }
   if (status === "ZERO_RESULTS") {
     return "No se pudo calcular la ruta. Verificar dirección del cliente.";
   }
@@ -93,11 +83,12 @@ export function cleanInstruction(html: string): string {
 }
 
 export function maneuverLabel(maneuver?: string): string {
-  if (!maneuver) return "Continúa";
-  if (maneuver.includes("left")) return "Gira a la izquierda";
-  if (maneuver.includes("right")) return "Gira a la derecha";
-  if (maneuver.includes("roundabout")) return "Toma la glorieta";
-  if (maneuver.includes("merge")) return "Incorpórate";
-  if (maneuver.includes("straight")) return "Sigue derecho";
+  const normalized = maneuver?.toLowerCase() ?? "";
+  if (!normalized) return "Continúa";
+  if (normalized.includes("left")) return "Gira a la izquierda";
+  if (normalized.includes("right")) return "Gira a la derecha";
+  if (normalized.includes("roundabout")) return "Toma la glorieta";
+  if (normalized.includes("merge")) return "Incorpórate";
+  if (normalized.includes("straight")) return "Sigue derecho";
   return "Continúa";
 }
