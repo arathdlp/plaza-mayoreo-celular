@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  mensajeWhatsAppEnCamino,
-  mensajeWhatsAppEntregado,
-  urlGoogleMapsDestino,
-  urlWhatsApp,
-} from "@/lib/contact-links";
+import { mensajeWhatsAppEnCamino, mensajeWhatsAppEntregado, urlWhatsApp } from "@/lib/contact-links";
 import NavigationMap from "@/components/tracking/NavigationMap";
 import PagoBadges from "@/components/pedidos/PagoBadges";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -40,10 +35,45 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
 
 const INTERVAL_MS = REPARTIDOR_GPS_INTERVAL_MS;
+const GEO_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 10_000,
+};
+
+type GpsPermission = "pending" | "granted" | "denied";
+
+function pendingPosKey(envioId: string) {
+  return `pmc_pending_pos_${envioId}`;
+}
+
+function savePendingPosition(envioId: string, lat: number, lng: number) {
+  try {
+    localStorage.setItem(pendingPosKey(envioId), JSON.stringify({ lat, lng, t: Date.now() }));
+  } catch {
+    /* quota */
+  }
+}
 
 function etiquetaMetodo(m: string | null): string {
   if (m === "mercado_pago") return "Mercado Pago";
   return "Pagar al recibir";
+}
+
+function GpsBlockedScreen() {
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-50 px-6 text-center">
+      <MapPin className="h-12 w-12 text-[#0066FF]" />
+      <h1 className="mt-4 text-xl font-semibold text-[#111827]">Activa tu ubicación</h1>
+      <p className="mt-3 max-w-md text-sm text-gray-600">
+        La app del repartidor necesita GPS para navegar y enviar tu posición al cliente. En Chrome o Safari,
+        abre el candado de la barra de dirección, permite Ubicación y recarga esta página.
+      </p>
+      <p className="mt-4 text-xs text-gray-500">
+        En iPhone: Ajustes del sitio → Ubicación → Permitir. En Android Chrome: Permisos → Ubicación.
+      </p>
+    </div>
+  );
 }
 
 function DirectionIcon({ maneuver }: { maneuver?: string }) {
@@ -61,7 +91,7 @@ export default function RepartidorView() {
   const [ctx, setCtx] = useState<RepartidorContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gpsOk, setGpsOk] = useState<boolean | null>(null);
+  const [gpsPermission, setGpsPermission] = useState<GpsPermission>("pending");
   const [busy, setBusy] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
   const [speedKmh, setSpeedKmh] = useState(0);
@@ -73,6 +103,8 @@ export default function RepartidorView() {
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastPosTimeRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const ctxRef = useRef<RepartidorContext | null>(null);
+  const trackingStartedRef = useRef(false);
 
   const authBody = useCallback(
     () => (token ? { token } : {}),
@@ -90,7 +122,9 @@ export default function RepartidorView() {
       setCtx(null);
       return;
     }
-    setCtx(json as RepartidorContext);
+    const data = json as RepartidorContext;
+    setCtx(data);
+    ctxRef.current = data;
     setError(null);
   }, [envioId, token]);
 
@@ -98,23 +132,92 @@ export default function RepartidorView() {
     void fetchCtx().finally(() => setLoading(false));
   }, [fetchCtx]);
 
+  const sendUbicacion = useCallback(
+    async (lat: number, lng: number) => {
+      try {
+        const res = await fetch(`/api/repartidor/${envioId}/ubicacion`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ...authBody(), lat, lng }),
+        });
+        if (!res.ok) throw new Error("upload failed");
+        savePendingPosition(envioId, lat, lng);
+      } catch {
+        savePendingPosition(envioId, lat, lng);
+        console.warn("[REPARTIDOR] No se pudo enviar ubicación, guardada localmente");
+      }
+    },
+    [authBody, envioId],
+  );
+
+  const applyPosition = useCallback(
+    (p: GeolocationPosition) => {
+      const next = { lat: p.coords.latitude, lng: p.coords.longitude };
+      const previous = lastPosRef.current;
+      const previousTime = lastPosTimeRef.current;
+      const now = p.timestamp || Date.now();
+      if (typeof p.coords.speed === "number" && Number.isFinite(p.coords.speed)) {
+        setSpeedKmh(Math.max(0, p.coords.speed * 3.6));
+      } else if (previous && previousTime && now > previousTime) {
+        const meters = distanceMeters(previous, next);
+        const seconds = (now - previousTime) / 1000;
+        const kmh = seconds > 0 ? (meters * 3.6) / seconds : 0;
+        setSpeedKmh(Math.max(0, Math.min(120, kmh)));
+      }
+      lastPosRef.current = next;
+      lastPosTimeRef.current = now;
+      setCurrentPosition(next);
+      if (ctxRef.current) void sendUbicacion(next.lat, next.lng);
+    },
+    [sendUbicacion],
+  );
+
+  const startTracking = useCallback(() => {
+    if (!navigator.geolocation || trackingStartedRef.current) return;
+    trackingStartedRef.current = true;
+
+    const tick = () => {
+      const pos = lastPosRef.current;
+      if (pos) void sendUbicacion(pos.lat, pos.lng);
+    };
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (p) => {
+        applyPosition(p);
+      },
+      (err) => {
+        console.warn("[REPARTIDOR] watchPosition error", err);
+        setGpsPermission("denied");
+      },
+      GEO_OPTIONS,
+    );
+
+    intervalRef.current = setInterval(tick, INTERVAL_MS);
+    tick();
+    console.log("[REPARTIDOR] watchPosition activo");
+  }, [applyPosition, sendUbicacion]);
+
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGpsOk(false);
+      setGpsPermission("denied");
       return;
     }
+    console.log("[REPARTIDOR] Solicitando permiso de geolocalización");
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        const next = { lat: p.coords.latitude, lng: p.coords.longitude };
-        lastPosRef.current = next;
-        lastPosTimeRef.current = p.timestamp || Date.now();
-        setCurrentPosition(next);
-        setGpsOk(true);
+        console.log("[REPARTIDOR] Primera posición obtenida");
+        applyPosition(p);
+        setGpsPermission("granted");
+        startTracking();
       },
-      () => setGpsOk(false),
-      { enableHighAccuracy: true, timeout: 12_000 },
+      (err) => {
+        console.warn("[REPARTIDOR] Geolocalización denegada", err);
+        setGpsPermission("denied");
+      },
+      GEO_OPTIONS,
     );
-  }, []);
+  }, [applyPosition, startTracking]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("pmc_repartidor_voice");
@@ -147,18 +250,6 @@ export default function RepartidorView() {
     }
   }, []);
 
-  const sendUbicacion = useCallback(
-    async (lat: number, lng: number) => {
-      await fetch(`/api/repartidor/${envioId}/ubicacion`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ ...authBody(), lat, lng }),
-      });
-    },
-    [authBody, envioId],
-  );
-
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -170,85 +261,53 @@ export default function RepartidorView() {
     }
   }, []);
 
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) return;
-
-    const tick = () => {
-      const pos = lastPosRef.current;
-      if (pos) void sendUbicacion(pos.lat, pos.lng);
-    };
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (p) => {
-        const next = { lat: p.coords.latitude, lng: p.coords.longitude };
-        const previous = lastPosRef.current;
-        const previousTime = lastPosTimeRef.current;
-        const now = p.timestamp || Date.now();
-        if (typeof p.coords.speed === "number" && Number.isFinite(p.coords.speed)) {
-          setSpeedKmh(Math.max(0, p.coords.speed * 3.6));
-        } else if (previous && previousTime && now > previousTime) {
-          const meters = distanceMeters(previous, next);
-          const seconds = (now - previousTime) / 1000;
-          const kmh = seconds > 0 ? (meters * 3.6) / seconds : 0;
-          setSpeedKmh(Math.max(0, Math.min(120, kmh)));
-        }
-        lastPosRef.current = next;
-        lastPosTimeRef.current = now;
-        setCurrentPosition(next);
-        setGpsOk(true);
-      },
-      () => setGpsOk(false),
-      { enableHighAccuracy: true, maximumAge: 5_000 },
-    );
-
-    intervalRef.current = setInterval(tick, INTERVAL_MS);
-    tick();
-  }, [sendUbicacion]);
-
   const envio = ctx?.envio;
 
   useEffect(() => {
-    if (envio?.estado === "en_camino" || envio?.estado === "llegando") {
-      void requestWakeLock();
-      startTracking();
-      return () => {
-        void releaseWakeLock();
-        stopTracking();
-      };
-    }
-    void releaseWakeLock();
-    stopTracking();
-    return () => {
-      void releaseWakeLock();
-      stopTracking();
-    };
-  }, [envio?.estado, releaseWakeLock, requestWakeLock, startTracking, stopTracking]);
+    if (ctx) ctxRef.current = ctx;
+  }, [ctx]);
 
   useEffect(() => {
-    return () => {
-      void releaseWakeLock();
+    const flushPending = () => {
+      try {
+        const raw = localStorage.getItem(pendingPosKey(envioId));
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { lat: number; lng: number };
+        if (Number.isFinite(parsed.lat) && Number.isFinite(parsed.lng)) {
+          void sendUbicacion(parsed.lat, parsed.lng);
+        }
+      } catch {
+        /* ignore */
+      }
     };
-  }, [releaseWakeLock]);
+    flushPending();
 
-  useEffect(() => {
     const onVisible = () => {
-      if (
-        document.visibilityState === "visible" &&
-        (envio?.estado === "en_camino" || envio?.estado === "llegando")
-      ) {
-        void requestWakeLock();
+      if (document.visibilityState === "visible") {
+        flushPending();
+        if (envio?.estado === "en_camino" || envio?.estado === "llegando") {
+          void requestWakeLock();
+        }
       }
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [envio?.estado, requestWakeLock]);
+  }, [envio?.estado, envioId, requestWakeLock, sendUbicacion]);
 
-  const mapsUrl = useMemo(() => {
-    if (!ctx) return null;
-    const lat = parseCoord(ctx.envio.destino_lat);
-    const lng = parseCoord(ctx.envio.destino_lng);
-    return urlGoogleMapsDestino(lat, lng, ctx.pedido.direccion_entrega);
-  }, [ctx]);
+  useEffect(() => {
+    if (envio?.estado === "en_camino" || envio?.estado === "llegando") {
+      void requestWakeLock();
+    } else {
+      void releaseWakeLock();
+    }
+  }, [envio?.estado, releaseWakeLock, requestWakeLock]);
+
+  useEffect(() => {
+    return () => {
+      stopTracking();
+      void releaseWakeLock();
+    };
+  }, [releaseWakeLock, stopTracking]);
 
   const waCliente = useMemo(() => {
     if (!ctx?.cliente.telefono) return null;
@@ -299,17 +358,17 @@ export default function RepartidorView() {
           lastPosRef.current = next;
           lastPosTimeRef.current = p.timestamp || Date.now();
           setCurrentPosition(next);
-          setGpsOk(true);
+          await requestWakeLock();
           await patchEstado("en_camino");
           resolve();
         },
         () => {
           setError("Activa el permiso de ubicación para iniciar.");
-          setGpsOk(false);
+          setGpsPermission("denied");
           setBusy(false);
           resolve();
         },
-        { enableHighAccuracy: true },
+        GEO_OPTIONS,
       );
     });
   }
@@ -341,15 +400,24 @@ export default function RepartidorView() {
     );
   }
 
+  if (gpsPermission === "denied") {
+    return <GpsBlockedScreen />;
+  }
+
   if (!ctx || !envio) return null;
 
   const estado = envio.estado;
   const entregado = estado === "entregado";
   const trackingActivo = estado === "en_camino" || estado === "llegando";
+  const showWakeBanner = gpsPermission === "granted";
   const destino = resolveDestino(envio);
   const activePosition = currentPosition ?? lastPosRef.current;
-  const navigationPosition = activePosition ? { lat: activePosition.lat, lng: activePosition.lng } : null;
+  const navigationPosition =
+    gpsPermission === "granted" && activePosition
+      ? { lat: activePosition.lat, lng: activePosition.lng }
+      : null;
   const step = stats?.currentStep;
+  const routeHint = stats?.routeError ?? (gpsPermission === "pending" ? "Obteniendo tu ubicación…" : null);
   const actionLabel =
     estado === "pendiente"
       ? "Iniciar entrega"
@@ -365,13 +433,13 @@ export default function RepartidorView() {
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 pb-28 text-[#111827]">
-      {trackingActivo ? (
+      {showWakeBanner ? (
         <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 bg-[#0066FF] px-4 py-2.5 text-sm font-semibold text-white shadow-lg">
           <Signal className="h-4 w-4" />
-          Tracking activo
+          Mantén esta pestaña abierta durante la entrega
         </div>
       ) : null}
-      <header className={`sticky z-40 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur ${trackingActivo ? "top-9" : "top-0"}`}>
+      <header className={`sticky z-40 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur ${showWakeBanner ? "top-9" : "top-0"}`}>
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">{ctx.cliente.nombre}</p>
@@ -416,6 +484,7 @@ export default function RepartidorView() {
             <NavigationMap
               current={navigationPosition}
               destination={destino}
+              destinationAddress={ctx.pedido.direccion_entrega}
               marker="navigation"
               followCurrent
               voiceEnabled={voiceEnabled}
@@ -425,7 +494,9 @@ export default function RepartidorView() {
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
-              Activa el permiso de ubicación para iniciar la navegación integrada.
+              {gpsPermission === "pending"
+                ? "Esperando permiso de ubicación…"
+                : "Activa el permiso de ubicación para iniciar la navegación integrada."}
             </div>
           )}
         </section>
@@ -434,8 +505,9 @@ export default function RepartidorView() {
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative z-10 rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl shadow-gray-900/15"
+            className="relative z-10 rounded-t-3xl border border-gray-200 bg-white p-5 shadow-[0_-12px_40px_-12px_rgba(0,0,0,0.2)]"
           >
+            <span className="mx-auto mb-4 block h-1 w-10 rounded-full bg-gray-200" />
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0066FF]/10 text-[#0066FF]">
                 <DirectionIcon maneuver={step?.maneuver} />
@@ -445,10 +517,16 @@ export default function RepartidorView() {
                   {maneuverLabel(step?.maneuver)}
                 </p>
                 <p className="mt-1 text-lg font-medium leading-snug">
-                  {step?.instruction ?? "Esperando ruta de navegación"}
+                  {step?.instruction ?? routeHint ?? "Calculando ruta…"}
                 </p>
               </div>
             </div>
+
+            {stats?.routeError ? (
+              <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                {stats.routeError}
+              </p>
+            ) : null}
 
             <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
               <div className="rounded-2xl bg-gray-50 p-3">
@@ -467,16 +545,6 @@ export default function RepartidorView() {
               </div>
             </div>
 
-            {mapsUrl ? (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex text-xs font-semibold text-[#0066FF]"
-              >
-                Abrir en Maps externo
-              </a>
-            ) : null}
           </motion.div>
         </section>
 

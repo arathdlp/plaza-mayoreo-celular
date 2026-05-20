@@ -12,6 +12,7 @@ export type PedidoTrackingPayload = {
   total: number;
   metodoPago: string | null;
   direccionEntrega: string;
+  pedidoEstado: string;
   items: {
     nombre: string;
     cantidad: number;
@@ -37,6 +38,7 @@ function buildPayload(
   pedidoId: number,
   pedido: {
     direccion_entrega: string;
+    estado?: string;
     total?: number | string | null;
     metodo_pago?: string | null;
     clientes?: unknown;
@@ -65,6 +67,7 @@ function buildPayload(
         : Number(pedido.total ?? 0),
     metodoPago: pedido.metodo_pago ?? null,
     direccionEntrega: pedido.direccion_entrega,
+    pedidoEstado: (pedido.estado as string) ?? "pendiente",
     items: ((pedido.pedido_items ?? []) as {
       cantidad: number;
       precio_unitario: number | string;
@@ -101,7 +104,7 @@ async function loadByToken(pedidoId: number, token: string): Promise<LoadPedidoT
 
   const { data: pedido } = await admin
     .from("pedidos")
-    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
+    .select("id, estado, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .maybeSingle();
 
@@ -119,7 +122,7 @@ async function loadByAdmin(pedidoId: number): Promise<LoadPedidoTrackingResult> 
 
   const { data: pedido } = await admin
     .from("pedidos")
-    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
+    .select("id, estado, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .maybeSingle();
 
@@ -144,7 +147,7 @@ async function loadByOwner(pedidoId: number, userId: string): Promise<LoadPedido
 
   const { data: pedido } = await supabase
     .from("pedidos")
-    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
+    .select("id, estado, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .eq("cliente_id", userId)
     .maybeSingle();

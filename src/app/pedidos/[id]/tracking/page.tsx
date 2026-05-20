@@ -107,6 +107,7 @@ export default async function PedidoTrackingPage({ params, searchParams }: Props
       total={data.total}
       metodoPago={data.metodoPago}
       direccionEntrega={data.direccionEntrega}
+      pedidoEstado={data.pedidoEstado}
       items={data.items}
       accessToken={guest ? data.accessToken : undefined}
       backHref={guest ? "/" : "/pedidos"}

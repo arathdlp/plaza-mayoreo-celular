@@ -16,7 +16,37 @@ export type NavigationStats = {
   durationValue: number;
   speedKmh: number;
   currentStep?: RouteStepInfo;
+  routeError?: string | null;
+  stepIndex?: number;
+  stepCount?: number;
 };
+
+export function stepsFromDirectionsLeg(
+  leg: google.maps.DirectionsLeg | undefined,
+): RouteStepInfo[] {
+  if (!leg?.steps?.length) return [];
+  return leg.steps.map((step) => ({
+    instruction: cleanInstruction(step.instructions ?? ""),
+    distanceText: step.distance?.text ?? formatDistance(step.distance?.value ?? 0),
+    durationText: step.duration?.text ?? formatDuration(step.duration?.value ?? 0),
+    distanceValue: step.distance?.value ?? 0,
+    durationValue: step.duration?.value ?? 0,
+    maneuver: step.maneuver,
+  }));
+}
+
+export function directionsErrorMessage(status: string): string {
+  if (status === "ZERO_RESULTS") {
+    return "No se pudo calcular la ruta. Verificar dirección del cliente.";
+  }
+  if (status === "OVER_QUERY_LIMIT" || status === "REQUEST_DENIED") {
+    return "Google Maps Directions API no está habilitada. Actívala en Google Cloud Console.";
+  }
+  if (status === "NOT_FOUND") {
+    return "Origen o destino no encontrado. Revisa la dirección del cliente.";
+  }
+  return `No se pudo calcular la ruta (${status}).`;
+}
 
 export function distanceMeters(a: LatLng, b: LatLng): number {
   const r = 6_371_000;

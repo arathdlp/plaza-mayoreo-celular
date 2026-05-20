@@ -1,7 +1,7 @@
 "use client";
 
 import ProductoImagen from "@/components/ProductoImagen";
-import CelularConstruccion from "@/components/tracking/CelularConstruccion";
+import CelularConstruccion, { mapCelularVisualEstado } from "@/components/tracking/CelularConstruccion";
 import NavigationMap from "@/components/tracking/NavigationMap";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -49,6 +49,7 @@ type Props = {
   total: number;
   metodoPago: string | null;
   direccionEntrega: string;
+  pedidoEstado: string;
   items: TrackingItem[];
   accessToken?: string;
   backHref?: string;
@@ -81,6 +82,7 @@ export default function TrackingPremiumView({
   total,
   metodoPago,
   direccionEntrega,
+  pedidoEstado,
   items,
   accessToken,
   backHref = "/pedidos",
@@ -89,12 +91,14 @@ export default function TrackingPremiumView({
   const [envio, setEnvio] = useState(initialEnvio);
   const [stats, setStats] = useState<NavigationStats | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
+  const [segundosDesdeUpdate, setSegundosDesdeUpdate] = useState(0);
   const envioPrevRef = useRef(initialEnvio);
   const guestMode = Boolean(accessToken);
 
   const destino = useMemo(() => resolveDestino(envio), [envio]);
   const repartidor = useMemo(() => coordsFromEnvio(envio), [envio]);
   const estado = envio.estado as EstadoEnvio;
+  const visualCelular = mapCelularVisualEstado(pedidoEstado, estado);
   const metodoBadge = badgeMetodoPago(metodoPago);
   const estadoPagoBadge = badgeEstadoPagoPedido(estado === "entregado" ? "pagado" : null);
 
@@ -117,9 +121,20 @@ export default function TrackingPremiumView({
   }, []);
 
   useEffect(() => {
+    console.log("[TRACKING] Estado envío:", envio.estado, "pedido:", pedidoEstado);
     notificarCambioEnvio(envioPrevRef.current, envio, pedidoId);
     envioPrevRef.current = envio;
-  }, [envio, pedidoId]);
+  }, [envio, pedidoEstado, pedidoId]);
+
+  useEffect(() => {
+    const tick = () => {
+      const t = new Date(envio.updated_at).getTime();
+      setSegundosDesdeUpdate(Math.max(0, Math.floor((Date.now() - t) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [envio.updated_at]);
 
   useEffect(() => {
     if (guestMode && accessToken) {
@@ -164,7 +179,9 @@ export default function TrackingPremiumView({
           }));
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[TRACKING] Realtime:", status);
+      });
 
     return () => {
       void supabase.removeChannel(channel);
@@ -193,7 +210,7 @@ export default function TrackingPremiumView({
       <main className="mx-auto max-w-2xl pb-10">
         <section className="relative overflow-hidden px-6 py-8 text-center">
           {estado === "entregado" ? <Particles /> : null}
-          <CelularConstruccion estado={estado} />
+          <CelularConstruccion visualEstado={visualCelular} />
           <h1 className="mt-5 text-2xl font-medium tracking-tight">{estadoTexto(estado)}</h1>
           <p className="mt-2 text-sm text-gray-500">
             {etaMinutes ? (
@@ -206,11 +223,29 @@ export default function TrackingPremiumView({
           </p>
         </section>
 
-        <section className="h-[50vh] min-h-[360px] overflow-hidden border-y border-gray-200 bg-gray-100">
+        <section className="relative h-[50vh] min-h-[360px] overflow-hidden border-y border-gray-200 bg-gray-100">
+          <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-sm">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                segundosDesdeUpdate <= 30
+                  ? "bg-emerald-500 animate-pulse"
+                  : segundosDesdeUpdate <= 60
+                    ? "bg-amber-400"
+                    : "bg-red-500"
+              }`}
+              aria-hidden
+            />
+            {segundosDesdeUpdate <= 30
+              ? "En vivo"
+              : segundosDesdeUpdate <= 60
+                ? "Reconectando..."
+                : "Sin señal"}
+          </div>
           {repartidor ? (
             <NavigationMap
               current={repartidor}
               destination={destino}
+              destinationAddress={direccionEntrega}
               marker="bike"
               onStats={onStats}
               className="h-full"
@@ -224,10 +259,10 @@ export default function TrackingPremiumView({
 
         {envio.repartidor_nombre ? (
           <section className="px-4 pt-5">
-            <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-4 shadow-lg shadow-gray-900/5">
+            <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <BorderBeam />
-              <div className="relative z-10 flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0066FF] font-semibold text-white">
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0066FF] text-base font-semibold text-white">
                   {inicial(envio.repartidor_nombre)}
                 </div>
                 <div className="min-w-0 flex-1">
