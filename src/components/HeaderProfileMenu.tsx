@@ -17,7 +17,12 @@ function inicial(nombre: string): string {
   return (t[0] ?? "?").toUpperCase();
 }
 
-export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile }) {
+type HeaderProfileMenuProps = {
+  profile: HeaderProfile;
+  size?: "sm" | "md";
+};
+
+export default function HeaderProfileMenu({ profile, size = "md" }: HeaderProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -43,7 +48,9 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0066FF] text-sm font-bold text-white shadow-md shadow-[#0066FF]/25 transition-transform hover:scale-105 active:scale-95"
+        className={`flex items-center justify-center rounded-full bg-[#0066FF] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-transform hover:scale-105 active:scale-95 ${
+          size === "sm" ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm"
+        }`}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Menú de cuenta"

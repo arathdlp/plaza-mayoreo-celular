@@ -16,14 +16,17 @@ import {
 } from "@/lib/design-system";
 import { staggerContainer, staggerItem } from "@/lib/motion-landing";
 import { productosListHref } from "@/lib/productos-url";
+import { createClient } from "@/lib/supabase/client";
 import {
   categoriasEquivalentes,
   type CategoriaFiltro,
   type Producto,
 } from "@/types/producto";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { SearchX } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const FILTROS: { id: CategoriaFiltro; etiqueta: string }[] = [
   { id: "todos", etiqueta: "Todos" },
@@ -44,6 +47,25 @@ export type ProductosCatalogProps = {
   categoria: CategoriaFiltro;
 };
 
+type ResultadoBusqueda = {
+  id: number;
+  marca: string | null;
+  modelo: string | null;
+  categoria: string | null;
+  precio: number | string | null;
+  imagen_url: string | null;
+};
+
+function precioResultado(precio: ResultadoBusqueda["precio"]): string {
+  const value = typeof precio === "string" ? Number(precio) : precio;
+  if (!Number.isFinite(value)) return "$0.00";
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
 export default function ProductosCatalog({
   productos,
   total,
@@ -53,10 +75,16 @@ export default function ProductosCatalog({
   categoria,
 }: ProductosCatalogProps) {
   const [busquedaDraft, setBusquedaDraft] = useState(q);
+  const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const reduceMotion = useReducedMotion();
+  const searchRef = useRef<HTMLFormElement>(null);
+  const supabase = useMemo(() => createClient(), []);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const desde = total === 0 ? 0 : (page - 1) * perPage + 1;
   const hasta = Math.min(page * perPage, total);
+  const instantQuery = busquedaDraft.trim();
 
   const hrefFor = useMemo(
     () => (opts: { page?: number; categoria?: CategoriaFiltro; q?: string }) =>
@@ -67,6 +95,50 @@ export default function ProductosCatalog({
       }),
     [categoria, q],
   );
+
+  useEffect(() => {
+    if (instantQuery.length < 2) {
+      setResultados([]);
+      setBuscando(false);
+      return;
+    }
+
+    let cancelled = false;
+    const searchTerm = instantQuery.replace(/[%,]/g, " ");
+    const timer = setTimeout(async () => {
+      setBuscando(true);
+      const { data } = await supabase
+        .from("productos")
+        .select("id, marca, modelo, categoria, precio, imagen_url")
+        .or(`marca.ilike.%${searchTerm}%,modelo.ilike.%${searchTerm}%`)
+        .eq("activo", true)
+        .gt("stock", 0)
+        .limit(8);
+
+      if (!cancelled) {
+        setResultados((data ?? []) as ResultadoBusqueda[]);
+        setBuscando(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [instantQuery, supabase]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const showDropdown = dropdownOpen && instantQuery.length >= 2;
 
   return (
     <PageReveal as="main" className="flex-1 bg-white">
@@ -82,7 +154,7 @@ export default function ProductosCatalog({
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <form action="/productos" method="get" className="relative max-w-xl" role="search">
+        <form ref={searchRef} action="/productos" method="get" className="relative max-w-xl" role="search">
           <svg
             className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 sm:left-4"
             viewBox="0 0 24 24"
@@ -100,10 +172,15 @@ export default function ProductosCatalog({
             type="search"
             name="q"
             value={busquedaDraft}
-            onChange={(e) => setBusquedaDraft(e.target.value)}
+            onChange={(e) => {
+              setBusquedaDraft(e.target.value);
+              setDropdownOpen(true);
+            }}
+            onFocus={() => setDropdownOpen(true)}
             placeholder="Buscar por nombre o modelo…"
             className={searchInput}
             aria-label="Buscar productos"
+            autoComplete="off"
           />
           <button
             type="submit"
@@ -111,6 +188,72 @@ export default function ProductosCatalog({
           >
             Buscar
           </button>
+          <AnimatePresence>
+            {showDropdown ? (
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+              >
+                {buscando ? (
+                  <div className="space-y-3 p-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex animate-pulse items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-gray-100" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="h-3 w-2/3 rounded bg-gray-100" />
+                          <div className="h-3 w-1/3 rounded bg-gray-100" />
+                        </div>
+                        <div className="h-3 w-14 rounded bg-gray-100" />
+                      </div>
+                    ))}
+                  </div>
+                ) : resultados.length > 0 ? (
+                  <ul className="max-h-[420px] overflow-y-auto py-2">
+                    {resultados.map((producto) => {
+                      const title = [producto.marca, producto.modelo].filter(Boolean).join(" ") || `Producto #${producto.id}`;
+                      return (
+                        <li key={producto.id}>
+                          <Link
+                            href={`/productos/${producto.id}`}
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex min-h-[64px] items-center gap-3 px-3 py-2 transition-colors hover:bg-[#F9FAFB]"
+                          >
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                              {producto.imagen_url ? (
+                                <Image src={producto.imagen_url} alt="" fill sizes="40px" className="object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[#0066FF]">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                                    <rect x="7" y="3" width="10" height="18" rx="2" />
+                                    <circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-[#111827]">{title}</p>
+                              <p className="truncate text-xs text-gray-500">{producto.categoria ?? "Producto"}</p>
+                            </div>
+                            <p className="shrink-0 text-sm font-bold tabular-nums text-[#0066FF]">
+                              {precioResultado(producto.precio)}
+                            </p>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="flex items-center gap-3 px-4 py-5 text-sm text-gray-500">
+                    <SearchX className="h-5 w-5 shrink-0 text-gray-400" />
+                    <span>No encontramos productos para &quot;{instantQuery}&quot;</span>
+                  </div>
+                )}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </form>
 
         <div
