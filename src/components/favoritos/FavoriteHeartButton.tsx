@@ -3,6 +3,7 @@
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { appToast } from "@/lib/toast";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Heart } from "lucide-react";
 import { useState } from "react";
 
 type FavoriteHeartButtonProps = {
@@ -37,11 +38,12 @@ export default function FavoriteHeartButton({
   }
 
   return (
-    <button
+    <motion.button
       type="button"
       aria-label={active ? "Quitar de favoritos" : "Guardar en favoritos"}
       aria-pressed={active}
-      className={`pointer-events-auto absolute right-2 top-2 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white text-gray-400 shadow-sm transition-colors duration-200 hover:text-red-500 sm:right-3 sm:top-3 ${className}`}
+      whileTap={reduceMotion ? undefined : { scale: 0.9 }}
+      className={`pointer-events-auto absolute right-2 top-2 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200/70 transition-colors duration-200 hover:text-[#0066FF] sm:right-3 sm:top-3 ${className}`}
       onClick={handleClick}
     >
       <AnimatePresence>
@@ -53,7 +55,7 @@ export default function FavoriteHeartButton({
               return (
                 <motion.span
                   key={deg}
-                  className="pointer-events-none absolute h-1.5 w-1.5 rounded-full bg-red-400"
+                  className="pointer-events-none absolute h-1.5 w-1.5 rounded-full bg-[#0066FF]"
                   initial={{ opacity: 0.9, scale: 0.4, x: 0, y: 0 }}
                   animate={{ opacity: 0, scale: 1.2, x, y }}
                   exit={{ opacity: 0 }}
@@ -68,7 +70,7 @@ export default function FavoriteHeartButton({
       {active && !reduceMotion ? (
         <motion.span
           key={pulseKey}
-          className="pointer-events-none absolute inset-0 rounded-full bg-red-400/25"
+          className="pointer-events-none absolute inset-0 rounded-full bg-[#0066FF]/20"
           initial={{ scale: 0.6, opacity: 0.8 }}
           animate={{ scale: 1.8, opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
@@ -76,12 +78,9 @@ export default function FavoriteHeartButton({
         />
       ) : null}
 
-      <motion.svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
+      <motion.span
         aria-hidden
-        className="relative z-[1]"
+        className="relative z-[1] flex items-center justify-center"
         initial={false}
         animate={
           reduceMotion
@@ -92,13 +91,13 @@ export default function FavoriteHeartButton({
         }
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
-        <path
-          d="M12 20.25l-1.45-1.32C5.4 14.36 2 11.28 2 7.5 2 5 4 3 6.5 3c1.74 0 3.41.81 4.5 2.09C12.09 3.81 13.76 3 15.5 3 18 3 20 5 20 7.5c0 3.78-3.4 6.86-8.55 11.43L12 20.25z"
-          fill={active ? "#ef4444" : "none"}
-          stroke={active ? "#ef4444" : "currentColor"}
-          strokeWidth="1.75"
+        <Heart
+          className="h-5 w-5"
+          fill={active ? "#0066FF" : "none"}
+          stroke={active ? "#0066FF" : "currentColor"}
+          strokeWidth={2}
         />
-      </motion.svg>
-    </button>
+      </motion.span>
+    </motion.button>
   );
 }

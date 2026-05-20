@@ -78,6 +78,7 @@ export default function ProductosCatalog({
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const searchRef = useRef<HTMLFormElement>(null);
   const supabase = useMemo(() => createClient(), []);
@@ -100,6 +101,7 @@ export default function ProductosCatalog({
     if (instantQuery.length < 2) {
       setResultados([]);
       setBuscando(false);
+      setSearchError(null);
       return;
     }
 
@@ -107,16 +109,28 @@ export default function ProductosCatalog({
     const searchTerm = instantQuery.replace(/[%,]/g, " ");
     const timer = setTimeout(async () => {
       setBuscando(true);
-      const { data } = await supabase
+      setSearchError(null);
+      console.log("[SEARCH] query:", searchTerm);
+      const { data, error } = await supabase
         .from("productos")
         .select("id, marca, modelo, categoria, precio, imagen_url")
-        .or(`marca.ilike.%${searchTerm}%,modelo.ilike.%${searchTerm}%`)
+        .or(
+          `marca.ilike.%${searchTerm}%,` +
+          `modelo.ilike.%${searchTerm}%,` +
+          `categoria.ilike.%${searchTerm}%`,
+        )
         .eq("activo", true)
-        .gt("stock", 0)
         .limit(8);
+      console.log("[SEARCH] data:", data);
+      console.log("[SEARCH] error:", error);
 
       if (!cancelled) {
-        setResultados((data ?? []) as ResultadoBusqueda[]);
+        if (error) {
+          setSearchError("No pudimos buscar productos en este momento.");
+          setResultados([]);
+        } else {
+          setResultados((data ?? []) as ResultadoBusqueda[]);
+        }
         setBuscando(false);
       }
     }, 300);
@@ -209,6 +223,11 @@ export default function ProductosCatalog({
                         <div className="h-3 w-14 rounded bg-gray-100" />
                       </div>
                     ))}
+                  </div>
+                ) : searchError ? (
+                  <div className="flex items-center gap-3 px-4 py-5 text-sm text-red-600">
+                    <SearchX className="h-5 w-5 shrink-0 text-red-500" />
+                    <span>{searchError}</span>
                   </div>
                 ) : resultados.length > 0 ? (
                   <ul className="max-h-[420px] overflow-y-auto py-2">
