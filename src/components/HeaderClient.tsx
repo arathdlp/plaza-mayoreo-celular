@@ -1,5 +1,6 @@
 "use client";
 
+import HeaderProfileMenu, { type HeaderProfile } from "@/components/HeaderProfileMenu";
 import { useCarrito } from "@/hooks/useCarrito";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { motion } from "framer-motion";
@@ -122,9 +123,10 @@ function MenuIcon({ open }: { open: boolean }) {
 
 type HeaderClientProps = {
   isAdmin: boolean;
+  profile: HeaderProfile | null;
 };
 
-export default function HeaderClient({ isAdmin }: HeaderClientProps) {
+export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -206,12 +208,18 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
             <CartIcon />
             <CarritoBadge />
           </Link>
-          <Link
-            href="/login"
-            className="hidden rounded-full bg-[#0066FF] px-5 py-2.5 text-[0.9375rem] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97] sm:inline-flex"
-          >
-            Iniciar Sesión
-          </Link>
+          {profile ? (
+            <div className="hidden sm:block">
+              <HeaderProfileMenu profile={profile} />
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="hidden rounded-full bg-[#0066FF] px-5 py-2.5 text-[0.9375rem] font-bold text-white shadow-md shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:bg-[#3385ff] hover:shadow-lg active:scale-[0.97] sm:inline-flex"
+            >
+              Iniciar Sesión
+            </Link>
+          )}
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100 md:hidden"
@@ -261,13 +269,19 @@ export default function HeaderClient({ isAdmin }: HeaderClientProps) {
           >
             Carrito
           </Link>
-          <Link
-            href="/login"
-            className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0066FF] px-4 py-3 text-[0.9375rem] font-bold text-white transition-all duration-300 ease-out hover:bg-[#3385ff] active:scale-[0.97]"
-            onClick={() => setOpen(false)}
-          >
-            Iniciar Sesión
-          </Link>
+          {profile ? (
+            <div className="mt-3 px-3 sm:hidden">
+              <HeaderProfileMenu profile={profile} />
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0066FF] px-4 py-3 text-[0.9375rem] font-bold text-white transition-all duration-300 ease-out hover:bg-[#3385ff] active:scale-[0.97]"
+              onClick={() => setOpen(false)}
+            >
+              Iniciar Sesión
+            </Link>
+          )}
         </nav>
       </div>
     </motion.header>

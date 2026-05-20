@@ -4,6 +4,7 @@ export type RepartidorPedidoItem = {
   nombre: string;
   cantidad: number;
   precio_unitario: number;
+  imagen_url: string | null;
 };
 
 export type RepartidorContext = {

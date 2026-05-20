@@ -11,11 +11,15 @@ import { formatoPesos } from "@/lib/format";
 import { parseCoord } from "@/lib/google-maps";
 import type { RepartidorContext } from "@/types/repartidor";
 import type { EstadoEnvio } from "@/types/envio";
+import ProductoImagen from "@/components/ProductoImagen";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const INTERVAL_MS = 15_000;
+import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
+
+const INTERVAL_MS = REPARTIDOR_GPS_INTERVAL_MS;
 
 function etiquetaMetodo(m: string | null): string {
   if (m === "mercado_pago") return "Mercado Pago";
@@ -116,7 +120,7 @@ export default function RepartidorView() {
   const envio = ctx?.envio;
 
   useEffect(() => {
-    if (envio?.estado === "en_camino") {
+    if (envio?.estado === "en_camino" || envio?.estado === "llegando") {
       startTracking();
       return stopTracking;
     }
@@ -220,33 +224,42 @@ export default function RepartidorView() {
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#4d9fff]">Repartidor</p>
         <h1 className="mt-2 text-2xl font-bold">Pedido #{ctx.pedido.id}</h1>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 space-y-3"
-        >
+        <div className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <p className="text-sm font-semibold text-white/90">Entregar en:</p>
+          <p className="text-lg font-bold leading-snug text-white">{ctx.pedido.direccion_entrega}</p>
           {mapsUrl ? (
             <a
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-[#0066FF] text-lg font-bold shadow-lg shadow-[#0066FF]/35 transition active:scale-[0.98]"
+              className="mt-3 flex min-h-[60px] w-full items-center justify-center gap-2 rounded-2xl bg-[#0066FF] text-xl font-bold shadow-lg shadow-[#0066FF]/35 transition active:scale-[0.98]"
             >
               <span aria-hidden>🗺️</span> Abrir en Google Maps
             </a>
           ) : null}
+        </div>
 
+        {ctx.pedido.metodo_pago === "contra_entrega" && !entregado ? (
+          <div className="mt-4 rounded-2xl border-2 border-red-500 bg-red-600/90 px-5 py-5 text-center shadow-lg">
+            <p className="text-lg font-black uppercase tracking-wide text-white">
+              💰 Cobrar en efectivo
+            </p>
+            <p className="mt-2 text-3xl font-black text-white">{formatoPesos(ctx.pedido.total)}</p>
+          </div>
+        ) : null}
+
+        <div className="mt-4 space-y-3">
           {waCliente ? (
             <a
               href={waCliente}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-lg font-bold shadow-lg shadow-[#25D366]/30 transition active:scale-[0.98]"
+              className="flex min-h-[60px] w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-xl font-bold shadow-lg shadow-[#25D366]/30 transition active:scale-[0.98]"
             >
               <span aria-hidden>💬</span> WhatsApp al cliente
             </a>
           ) : null}
-        </motion.div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -275,15 +288,30 @@ export default function RepartidorView() {
 
           <motion.div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/50">Productos</p>
-            <ul className="mt-3 divide-y divide-white/10">
+            <ul className="mt-3 space-y-3">
               {ctx.items.map((it, i) => (
-                <li key={i} className="flex justify-between gap-3 py-2.5 text-sm first:pt-0">
-                  <span className="text-white/90">
-                    {it.cantidad}× {it.nombre}
-                  </span>
-                  <span className="shrink-0 font-medium tabular-nums text-white">
-                    {formatoPesos(it.precio_unitario * it.cantidad)}
-                  </span>
+                <li key={i} className="flex gap-3 rounded-xl bg-black/20 p-2">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10">
+                    {it.imagen_url ? (
+                      <Image src={it.imagen_url} alt="" fill className="object-cover" sizes="56px" />
+                    ) : (
+                      <ProductoImagen
+                        categoria="Accesorio"
+                        marca=""
+                        nombre={it.nombre}
+                        variant="card"
+                        className="absolute inset-0 scale-150"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">
+                      {it.cantidad}× {it.nombre}
+                    </p>
+                    <p className="text-xs tabular-nums text-white/60">
+                      {formatoPesos(it.precio_unitario * it.cantidad)}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -295,7 +323,7 @@ export default function RepartidorView() {
               {gpsOk === null
                 ? "Comprobando permisos…"
                 : gpsOk
-                  ? "Ubicación activa · enviando cada 15 s"
+                  ? "Ubicación activa · enviando cada 5 s"
                   : "Permite el acceso a ubicación en tu navegador"}
             </p>
           </div>

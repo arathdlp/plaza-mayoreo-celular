@@ -5,12 +5,14 @@ export const MORELIA_CENTER = { lat: 19.7059, lng: -101.1949 } as const;
 export const ETIQUETAS_ESTADO_ENVIO: Record<EstadoEnvio, string> = {
   pendiente: "Pendiente de salida",
   en_camino: "En camino",
+  llegando: "Llegando",
   entregado: "Entregado",
 };
 
 export const BADGE_ESTADO_ENVIO: Record<EstadoEnvio, string> = {
   pendiente: "border-slate-200 bg-slate-100 text-slate-800",
   en_camino: "border-sky-200 bg-sky-50 text-sky-800",
+  llegando: "border-amber-200 bg-amber-50 text-amber-800",
   entregado: "border-emerald-200 bg-emerald-50 text-emerald-800",
 };
 
@@ -20,7 +22,7 @@ export const ETIQUETAS_TIPO_ENVIO: Record<TipoEnvio, string> = {
 };
 
 export function envioActivo(estado: EstadoEnvio): boolean {
-  return estado === "pendiente" || estado === "en_camino";
+  return estado === "pendiente" || estado === "en_camino" || estado === "llegando";
 }
 
 export function urlTrackingPaqueteria(empresa: string | null, guia: string | null): string | null {

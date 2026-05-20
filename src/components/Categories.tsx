@@ -1,72 +1,22 @@
 "use client";
 
+import { productosListHref } from "@/lib/productos-url";
+import type { CategoriaProducto } from "@/types/producto";
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import ScrollReveal, { staggerContainer, staggerItem } from "@/components/ScrollReveal";
 
-type Category = { name: string; icon: React.ReactNode };
-
-function IconPantalla() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <rect x="5" y="3" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 21h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBateria() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <rect x="6" y="7" width="10" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 5h6v2H9z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconPlaca() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconAccesorio() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconCelular() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12" cy="17" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconTapa() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#0066FF]" aria-hidden>
-      <rect x="5" y="5" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 10h14" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
-
-const categories: Category[] = [
-  { name: "Pantallas", icon: <IconPantalla /> },
-  { name: "Baterías", icon: <IconBateria /> },
-  { name: "Placas de Carga", icon: <IconPlaca /> },
-  { name: "Accesorios", icon: <IconAccesorio /> },
-  { name: "Celulares", icon: <IconCelular /> },
-  { name: "Tapas Traseras", icon: <IconTapa /> },
+const categories: {
+  name: string;
+  emoji: string;
+  categoria: CategoriaProducto;
+}[] = [
+  { name: "Pantallas", emoji: "📱", categoria: "Pantalla" },
+  { name: "Baterías", emoji: "🔋", categoria: "Bateria" },
+  { name: "Tapas Traseras", emoji: "📦", categoria: "Tapa Trasera" },
+  { name: "Placas de Carga", emoji: "🔌", categoria: "Placa de Carga" },
+  { name: "Accesorios", emoji: "🎧", categoria: "Accesorio" },
+  { name: "Celulares", emoji: "📲", categoria: "Celular" },
 ];
 
 export default function Categories() {
@@ -97,13 +47,13 @@ export default function Categories() {
           {categories.map((cat) => (
             <motion.li key={cat.name} variants={reduceMotion ? undefined : staggerItem} className="h-full">
               <Link
-                href="/productos"
-                className="group flex h-full min-h-[200px] flex-col rounded-2xl border border-gray-200 bg-white p-7 transition-all duration-500 ease-out hover:scale-[1.02] hover:border-[#0066FF]/40 hover:shadow-[0_12px_40px_-12px_rgba(0,102,255,0.12)] active:scale-[0.99]"
+                href={productosListHref({ categoria: cat.categoria })}
+                className="group flex h-full min-h-[180px] flex-col rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-7 transition-all duration-300 ease-out hover:scale-[1.05] hover:border-[#0066FF]/30 hover:shadow-[0_16px_48px_-16px_rgba(0,102,255,0.2)] active:scale-[0.99]"
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0066FF]/8 transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:bg-[#0066FF]/12">
-                  {cat.icon}
+                <span className="text-4xl" aria-hidden>
+                  {cat.emoji}
                 </span>
-                <span className="mt-5 text-lg font-bold tracking-tight text-gray-900">{cat.name}</span>
+                <span className="mt-4 text-lg font-bold tracking-tight text-gray-900">{cat.name}</span>
                 <span className="mt-2 text-sm font-semibold text-[#0066FF]">Ver productos →</span>
               </Link>
             </motion.li>

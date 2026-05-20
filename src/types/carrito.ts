@@ -12,4 +12,7 @@ export type ProductoCarritoPayload = {
   nombre: string;
   precio: number;
   imagen_url: string | null;
+  marca?: string;
+  modelo?: string;
+  categoria?: string;
 };

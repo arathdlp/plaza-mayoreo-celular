@@ -5,6 +5,7 @@ import PageReveal from "@/components/PageReveal";
 import { accentLabel, btnPrimary, headingPage, textMuted, textSubtle } from "@/lib/design-system";
 import { formatoPesos } from "@/lib/format";
 import { useCarrito } from "@/hooks/useCarrito";
+import { appToast } from "@/lib/toast";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -135,7 +136,10 @@ export default function CarritoVista() {
 
                         <button
                           type="button"
-                          onClick={() => eliminar(linea.productoId)}
+                          onClick={() => {
+                            eliminar(linea.productoId);
+                            appToast.eliminadoCarrito();
+                          }}
                           className="cursor-pointer text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
                         >
                           Eliminar

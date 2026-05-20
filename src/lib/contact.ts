@@ -1,5 +1,8 @@
 /** Datos de contacto oficiales — Plaza Mayoreo del Celular / Más Tecnología */
 
+/** Número local Morelia (sin prefijo): 443 540 2474 */
+export const STORE_PHONE_LOCAL = "4435402474";
+
 export const CONTACT_CITY = "Morelia, Michoacán";
 
 export const CONTACT_PHONE_E164 = "524435402474";

@@ -1,5 +1,7 @@
 import { mensajeWhatsAppEntregado, urlWhatsApp } from "@/lib/contact-links";
 import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
+import { distanciaMetros } from "@/lib/geo";
+import { parseCoord } from "@/lib/google-maps";
 import { estadoPedidoPorEnvio, patchPedidoAlEntregar } from "@/lib/pedido-flujo";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { RepartidorContext, RepartidorPedidoItem } from "@/types/repartidor";
@@ -75,7 +77,7 @@ export async function getRepartidorContext(
       pedido_items (
         cantidad,
         precio_unitario,
-        productos ( nombre )
+        productos ( nombre, imagen_url )
       ),
       clientes ( nombre, telefono )
     `,
@@ -96,7 +98,7 @@ export async function getRepartidorContext(
   const itemsRaw = (pedido.pedido_items ?? []) as {
     cantidad: number;
     precio_unitario: number | string;
-    productos: { nombre: string } | { nombre: string }[] | null;
+    productos: { nombre: string; imagen_url: string | null } | { nombre: string; imagen_url: string | null }[] | null;
   }[];
 
   const items: RepartidorPedidoItem[] = itemsRaw.map((it) => {
@@ -110,6 +112,7 @@ export async function getRepartidorContext(
       nombre: prod?.nombre?.trim() || "Producto",
       cantidad: it.cantidad,
       precio_unitario: pu,
+      imagen_url: prod?.imagen_url ?? null,
     };
   });
 
@@ -150,7 +153,7 @@ export async function registrarUbicacionRepartidor(
   if (auth.envio.estado === "entregado") {
     return { ok: false as const, error: "El envío ya fue entregado." };
   }
-  if (auth.envio.estado !== "en_camino") {
+  if (auth.envio.estado !== "en_camino" && auth.envio.estado !== "llegando") {
     return { ok: false as const, error: "Inicia la entrega primero." };
   }
 
@@ -165,15 +168,32 @@ export async function registrarUbicacionRepartidor(
     return { ok: false as const, error: "No se pudo guardar la ubicación." };
   }
 
+  const envio = auth.envio;
+  const dLat = parseCoord(envio.destino_lat);
+  const dLng = parseCoord(envio.destino_lng);
+  let nuevoEstado = envio.estado;
+  if (
+    envio.estado === "en_camino" &&
+    dLat != null &&
+    dLng != null &&
+    distanciaMetros({ lat, lng }, { lat: dLat, lng: dLng }) < 200
+  ) {
+    nuevoEstado = "llegando";
+  }
+
   const { error: updErr } = await supabase
     .from("envios")
-    .update({ lat_actual: lat, lng_actual: lng })
+    .update({
+      lat_actual: lat,
+      lng_actual: lng,
+      ...(nuevoEstado !== envio.estado ? { estado: nuevoEstado } : {}),
+    })
     .eq("id", envioId);
 
   if (updErr) {
     return { ok: false as const, error: "No se pudo actualizar el envío." };
   }
-  return { ok: true as const };
+  return { ok: true as const, estado: nuevoEstado };
 }
 
 export async function actualizarEstadoRepartidor(

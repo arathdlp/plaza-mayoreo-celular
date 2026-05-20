@@ -13,19 +13,25 @@ import {
 
 const STORAGE_KEY = "plaza-mayoreo-carrito-v1";
 
+export type UltimoAgregadoCarrito = ProductoCarritoPayload & {
+  marca: string;
+  modelo: string;
+  categoria: string;
+};
+
 type CarritoContextValue = {
   lineas: CarritoLinea[];
-  /** Unidades totales (suma de cantidades) para badge */
   totalItems: number;
-  /** Importe total MXN */
   totalPrecio: number;
-  /** Ya hidratado desde localStorage */
   listo: boolean;
+  ultimoAgregado: UltimoAgregadoCarrito | null;
+  mostrarRecomendaciones: boolean;
   agregar: (p: ProductoCarritoPayload) => void;
   incrementar: (productoId: number) => void;
   decrementar: (productoId: number) => void;
   eliminar: (productoId: number) => void;
   vaciar: () => void;
+  cerrarRecomendaciones: () => void;
 };
 
 const CarritoContext = createContext<CarritoContextValue | null>(null);
@@ -63,6 +69,8 @@ function leerStorage(): CarritoLinea[] {
 export function CarritoProvider({ children }: { children: ReactNode }) {
   const [lineas, setLineas] = useState<CarritoLinea[]>([]);
   const [listo, setListo] = useState(false);
+  const [ultimoAgregado, setUltimoAgregado] = useState<UltimoAgregadoCarrito | null>(null);
+  const [mostrarRecomendaciones, setMostrarRecomendaciones] = useState(false);
 
   useEffect(() => {
     setLineas(leerStorage());
@@ -79,6 +87,15 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
   }, [lineas, listo]);
 
   const agregar = useCallback((p: ProductoCarritoPayload) => {
+    if (p.marca && p.modelo && p.categoria) {
+      setUltimoAgregado({
+        ...p,
+        marca: p.marca,
+        modelo: p.modelo,
+        categoria: p.categoria,
+      });
+      setMostrarRecomendaciones(true);
+    }
     setLineas((prev) => {
       const idx = prev.findIndex((l) => l.productoId === p.id);
       if (idx >= 0) {
@@ -123,6 +140,8 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
 
   const vaciar = useCallback(() => setLineas([]), []);
 
+  const cerrarRecomendaciones = useCallback(() => setMostrarRecomendaciones(false), []);
+
   const totalItems = useMemo(
     () => lineas.reduce((s, l) => s + l.cantidad, 0),
     [lineas],
@@ -139,22 +158,28 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
       totalItems,
       totalPrecio,
       listo,
+      ultimoAgregado,
+      mostrarRecomendaciones,
       agregar,
       incrementar,
       decrementar,
       eliminar,
       vaciar,
+      cerrarRecomendaciones,
     }),
     [
       lineas,
       totalItems,
       totalPrecio,
       listo,
+      ultimoAgregado,
+      mostrarRecomendaciones,
       agregar,
       incrementar,
       decrementar,
       eliminar,
       vaciar,
+      cerrarRecomendaciones,
     ],
   );
 

@@ -12,6 +12,7 @@ type Props = {
   /** Vista compacta para filas del admin */
   mini?: boolean;
   interactive?: boolean;
+  repartidorPulsando?: boolean;
 };
 
 function makeMarker(
@@ -40,6 +41,7 @@ export default function TrackingMap({
   className = "",
   mini = false,
   interactive = true,
+  repartidorPulsando = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -110,12 +112,12 @@ export default function TrackingMap({
           zIndex: 2,
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: mini ? 14 : 18,
-            fillColor: "#0066FF",
-            fillOpacity: 0.2,
-            strokeColor: "#0066FF",
-            strokeOpacity: 0.45,
-            strokeWeight: 2,
+            scale: repartidorPulsando ? (mini ? 22 : 28) : mini ? 14 : 18,
+            fillColor: repartidorPulsando ? "#f59e0b" : "#0066FF",
+            fillOpacity: repartidorPulsando ? 0.35 : 0.2,
+            strokeColor: repartidorPulsando ? "#f59e0b" : "#0066FF",
+            strokeOpacity: repartidorPulsando ? 0.7 : 0.45,
+            strokeWeight: repartidorPulsando ? 3 : 2,
           },
         });
       } else {
@@ -160,7 +162,7 @@ export default function TrackingMap({
       map.setCenter(destino);
       map.setZoom(mini ? 13 : 14);
     }
-  }, [destino, repartidor, mini]);
+  }, [destino, repartidor, mini, repartidorPulsando]);
 
   return (
     <div

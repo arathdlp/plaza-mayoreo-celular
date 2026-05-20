@@ -2,6 +2,7 @@
 
 import ShimmerButton from "@/components/cult/ShimmerButton";
 import { useCarrito } from "@/hooks/useCarrito";
+import { appToast } from "@/lib/toast";
 import type { ProductoCarritoPayload } from "@/types/carrito";
 
 type Props = {
@@ -26,6 +27,7 @@ export default function AgregarAlCarritoButton({
         e.preventDefault();
         e.stopPropagation();
         agregar(producto);
+        appToast.agregadoCarrito(producto.nombre);
       }}
     >
       Agregar al carrito

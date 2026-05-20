@@ -1,7 +1,9 @@
 export const TIPOS_ENVIO = ["local", "paqueteria"] as const;
 export type TipoEnvio = (typeof TIPOS_ENVIO)[number];
 
-export const ESTADOS_ENVIO = ["pendiente", "en_camino", "entregado"] as const;
+export const ESTADOS_ENVIO = ["pendiente", "en_camino", "llegando", "entregado"] as const;
+
+export const REPARTIDOR_GPS_INTERVAL_MS = 5_000;
 export type EstadoEnvio = (typeof ESTADOS_ENVIO)[number];
 
 export type EnvioRow = {

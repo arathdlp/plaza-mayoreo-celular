@@ -13,10 +13,11 @@ import {
 import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { parseCoord, resolveDestino, type LatLng } from "@/lib/google-maps";
 import { createClient } from "@/lib/supabase/client";
+import { notificarCambioEnvio, solicitarPermisoNotificaciones } from "@/lib/tracking-push";
 import type { EnvioRow, EstadoEnvio, TipoEnvio } from "@/types/envio";
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   pedidoId: number;
@@ -40,6 +41,8 @@ export default function TrackingView({
 }: Props) {
   const reduceMotion = useReducedMotion();
   const [envio, setEnvio] = useState(initialEnvio);
+  const [segundosDesdeUpdate, setSegundosDesdeUpdate] = useState(0);
+  const envioPrevRef = useRef(initialEnvio);
 
   const destino = useMemo(() => resolveDestino(envio), [envio]);
   const repartidor = useMemo(() => coordsFromEnvio(envio), [envio]);
@@ -60,6 +63,25 @@ export default function TrackingView({
       mensajeClienteARepartidor(clienteNombre ?? "cliente", pedidoId),
     );
   }, [envio.repartidor_telefono, clienteNombre, pedidoId]);
+
+  useEffect(() => {
+    void solicitarPermisoNotificaciones();
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      const t = new Date(envio.updated_at).getTime();
+      setSegundosDesdeUpdate(Math.max(0, Math.floor((Date.now() - t) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [envio.updated_at]);
+
+  useEffect(() => {
+    notificarCambioEnvio(envioPrevRef.current, envio, pedidoId);
+    envioPrevRef.current = envio;
+  }, [envio, pedidoId]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -111,10 +133,28 @@ export default function TrackingView({
       </header>
 
       <div className="relative flex-1 min-h-[45vh]">
+        {tipo === "local" && repartidor ? (
+          <div
+            className={`absolute left-4 top-4 z-10 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md ${
+              segundosDesdeUpdate > 30
+                ? "bg-amber-100 text-amber-900"
+                : "bg-emerald-100 text-emerald-900"
+            }`}
+          >
+            {segundosDesdeUpdate > 30
+              ? "🟡 Conectando…"
+              : `🟢 Última actualización: hace ${segundosDesdeUpdate}s`}
+          </div>
+        ) : null}
         {tipo === "local" ? (
-          <TrackingMap destino={destino} repartidor={repartidor} className="absolute inset-0" />
+          <TrackingMap
+            destino={destino}
+            repartidor={repartidor}
+            repartidorPulsando={estado === "llegando"}
+            className="absolute inset-0"
+          />
         ) : (
-          <motion.div className="flex h-full min-h-[45vh] flex-col items-center justify-center bg-gradient-to-b from-[#0066FF]/20 to-[#0a0a0f] px-6 text-center">
+          <div className="flex h-full min-h-[45vh] flex-col items-center justify-center bg-gradient-to-b from-[#0066FF]/20 to-[#0a0a0f] px-6 text-center">
             <p className="text-lg font-bold text-white">Envío por paquetería</p>
             <p className="mt-2 text-sm text-white/70">
               {envio.paqueteria_empresa} · Guía{" "}
@@ -130,7 +170,7 @@ export default function TrackingView({
                 Rastrear en {envio.paqueteria_empresa}
               </a>
             ) : null}
-          </motion.div>
+          </div>
         )}
       </div>
 
@@ -158,9 +198,9 @@ export default function TrackingView({
               ) : (
                 <p className="text-lg font-bold text-[#111827]">{ETIQUETAS_TIPO_ENVIO[tipo]}</p>
               )}
-              {estado === "en_camino" ? (
+              {estado === "en_camino" || estado === "llegando" ? (
                 <p className="mt-1">
-                  <EnCaminoDots />
+                  <EnCaminoDots label={estado === "llegando" ? "Llegando" : "En camino"} />
                 </p>
               ) : (
                 <span

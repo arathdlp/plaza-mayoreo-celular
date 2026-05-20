@@ -74,6 +74,9 @@ export default function ProductoCard({ producto, mostrarQuitar = false }: Produc
                 nombre: producto.nombre,
                 precio: producto.precio,
                 imagen_url: producto.imagen_url,
+                marca: producto.marca,
+                modelo: producto.modelo,
+                categoria: producto.categoria,
               }}
             />
             {mostrarQuitar ? <QuitarFavoritoButton productoId={producto.id} /> : null}

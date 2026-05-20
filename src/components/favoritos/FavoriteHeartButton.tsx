@@ -1,6 +1,7 @@
 "use client";
 
 import { useFavoritos } from "@/hooks/useFavoritos";
+import { appToast } from "@/lib/toast";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 
@@ -26,6 +27,8 @@ export default function FavoriteHeartButton({
     e.stopPropagation();
     const wasActive = active;
     await toggle(productoId);
+    if (wasActive) appToast.favoritoQuitado();
+    else appToast.favoritoAgregado();
     if (!wasActive && !reduceMotion) {
       setBurst(true);
       setPulseKey((k) => k + 1);
