@@ -136,7 +136,7 @@ function GpsBlockedScreen({
       <button
         type="button"
         onClick={onRetry}
-        className="mt-6 rounded-2xl bg-[#0066FF] px-6 py-3 text-sm font-semibold text-white shadow-sm"
+        className="mt-6 flex h-14 items-center justify-center rounded-2xl bg-[#0066FF] px-6 text-sm font-semibold text-white shadow-sm"
       >
         Reintentar
       </button>
@@ -173,13 +173,13 @@ function LoadingScreen({
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+            className="inline-flex h-14 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
           >
             Reintentar
           </button>
           <a
             href="/"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+            className="inline-flex h-14 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
           >
             Volver al inicio
           </a>
@@ -198,13 +198,13 @@ function FatalScreen({ title, message }: { title: string; message: string }) {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+          className="inline-flex h-14 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
         >
           Reintentar
         </button>
         <a
           href="/"
-          className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+          className="inline-flex h-14 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
         >
           Volver al inicio
         </a>
@@ -264,7 +264,7 @@ function DriverCompletedScreen({ pedidoId }: { pedidoId: number }) {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-10 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[#0066FF] shadow-sm"
+          className="mt-10 inline-flex h-14 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[#0066FF] shadow-sm"
         >
           Volver al inicio
         </motion.a>
@@ -790,13 +790,13 @@ export default function RepartidorView() {
           <button
             type="button"
             onClick={loadContext}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+            className="inline-flex h-14 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
           >
             Reintentar
           </button>
           <a
             href="/"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+            className="inline-flex h-14 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
           >
             Volver al inicio
           </a>
@@ -892,7 +892,7 @@ export default function RepartidorView() {
               <a
                 href={`tel:${cliente.telefono.replace(/\s/g, "")}`}
                 aria-label="Llamar al cliente"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
               >
                 <Phone className="h-5 w-5" />
               </a>
@@ -903,7 +903,7 @@ export default function RepartidorView() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Enviar mensaje al cliente"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0066FF] text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0066FF] text-white"
               >
                 <MessageCircle className="h-5 w-5" />
               </a>
@@ -912,7 +912,7 @@ export default function RepartidorView() {
               type="button"
               onClick={toggleVoice}
               aria-label={voiceEnabled ? "Desactivar voz" : "Activar voz"}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
             >
               {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             </button>
@@ -921,7 +921,7 @@ export default function RepartidorView() {
       </header>
 
       <main className="mx-auto max-w-2xl">
-        <section className="h-[60vh] min-h-[420px] overflow-hidden border-b border-gray-200 bg-gray-100">
+        <section className="h-[50vh] min-h-[320px] overflow-hidden border-b border-gray-200 bg-gray-100 sm:h-[60vh] sm:min-h-[420px]">
           {!apiKeyAvailable ? (
             <div className="flex h-full items-center justify-center px-6 text-center">
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -956,7 +956,7 @@ export default function RepartidorView() {
               <button
                 type="button"
                 onClick={requestCurrentPosition}
-                className="mt-5 rounded-2xl bg-[#0066FF] px-5 py-3 text-sm font-semibold text-white shadow-sm"
+                className="mt-5 flex h-14 items-center justify-center rounded-2xl bg-[#0066FF] px-5 text-sm font-semibold text-white shadow-sm"
               >
                 Activar ubicación
               </button>
@@ -964,7 +964,7 @@ export default function RepartidorView() {
           )}
         </section>
 
-        <section className="-mt-24 px-4">
+        <section className="-mt-16 px-4 sm:-mt-24">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -979,7 +979,7 @@ export default function RepartidorView() {
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                   {maneuverLabel(step?.maneuver)}
                 </p>
-                <p className="mt-1 text-lg font-medium leading-snug">
+                <p className="mt-1 text-base font-medium leading-snug sm:text-lg">
                   {step?.instruction ?? routeHint ?? "Calculando ruta…"}
                 </p>
               </div>
@@ -1100,14 +1100,14 @@ export default function RepartidorView() {
               <button
                 type="button"
                 onClick={() => setConfirmEntregaOpen(false)}
-                className="h-12 rounded-2xl border border-gray-200 font-medium text-gray-700"
+                className="h-14 rounded-2xl border border-gray-200 font-medium text-gray-700"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => void confirmarEntrega()}
-                className="h-12 rounded-2xl bg-emerald-500 font-medium text-white"
+                className="h-14 rounded-2xl bg-emerald-500 font-medium text-white"
               >
                 Confirmar
               </button>

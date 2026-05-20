@@ -19,7 +19,7 @@ export default function PedidoTicketButtons({ pedidoId, ticketUrl }: Props) {
       <a
         href={downloadHref}
         download
-        className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnPrimary}`}
+        className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnPrimary}`}
       >
         <FileText className="h-4 w-4" />
         Descargar ticket
@@ -28,7 +28,7 @@ export default function PedidoTicketButtons({ pedidoId, ticketUrl }: Props) {
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnSecondary}`}
+        className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnSecondary}`}
       >
         <Send className="h-4 w-4" />
         Enviar por WhatsApp

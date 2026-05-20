@@ -12,7 +12,7 @@ export default function PagoBadges({ metodoPago, estadoPago, className = "" }: P
   if (badges.length === 0) return null;
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <div className={`flex min-w-0 flex-wrap gap-2 ${className}`}>
       {badges.map((b) => {
         const Icon =
           b.icon === "card"
@@ -27,7 +27,7 @@ export default function PagoBadges({ metodoPago, estadoPago, className = "" }: P
         return (
           <span
             key={b.label}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${b.className}`}
+            className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${b.className}`}
           >
             <Icon className="h-3.5 w-3.5" />
             {b.label}

@@ -39,7 +39,7 @@ function QtyButton({
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.92 }}
-      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-lg font-semibold text-gray-800 shadow-sm transition-all duration-300 hover:border-[#0066FF]/40 hover:text-[#0066FF]"
+      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-lg font-semibold text-gray-800 shadow-sm transition-all duration-300 hover:border-[#0066FF]/40 hover:text-[#0066FF]"
       aria-label={label}
     >
       {children}
@@ -65,7 +65,7 @@ export default function CarritoVista() {
 
   return (
     <PageReveal as="main" className="flex-1 bg-gray-50">
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
         <p className={accentLabel}>Tu pedido</p>
         <h1 className={`mt-2 ${headingPage}`}>Carrito</h1>
 
@@ -91,42 +91,46 @@ export default function CarritoVista() {
                     initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.06, duration: 0.4 }}
-                    className="flex flex-row items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:gap-5 sm:p-5"
+                    className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5"
                   >
-                    <Link
-                      href={`/productos/${linea.productoId}`}
-                      className="shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200/80 transition-opacity hover:opacity-90"
-                    >
-                      {linea.imagen_url ? (
-                        <div className="relative h-20 w-20">
-                          <Image
-                            src={linea.imagen_url}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="80px"
-                          />
-                        </div>
-                      ) : (
-                        <PlaceholderThumb />
-                      )}
-                    </Link>
-
-                    <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 gap-4">
                       <Link
                         href={`/productos/${linea.productoId}`}
-                        className="cursor-pointer font-bold leading-snug text-gray-900 transition-colors hover:text-[#0066FF]"
+                        className="shrink-0 cursor-pointer overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200/80 transition-opacity hover:opacity-90"
                       >
-                        {linea.nombre}
+                        {linea.imagen_url ? (
+                          <div className="relative h-20 w-20">
+                            <Image
+                              src={linea.imagen_url}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="80px"
+                            />
+                          </div>
+                        ) : (
+                          <PlaceholderThumb />
+                        )}
                       </Link>
-                      <p className={`mt-1 text-sm ${textSubtle}`}>{formatoPesos(linea.precio)} c/u</p>
 
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <div className="inline-flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/productos/${linea.productoId}`}
+                          className="cursor-pointer break-words text-base font-bold leading-snug text-gray-900 transition-colors hover:text-[#0066FF]"
+                        >
+                          {linea.nombre}
+                        </Link>
+                        <p className={`mt-1 text-sm ${textSubtle}`}>{formatoPesos(linea.precio)} c/u</p>
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="inline-flex items-center gap-3">
                           <QtyButton label="Menos una unidad" onClick={() => decrementar(linea.productoId)}>
                             −
                           </QtyButton>
-                          <span className="min-w-[2rem] text-center text-sm font-bold text-gray-900">
+                          <span className="min-w-[2rem] text-center text-base font-bold text-gray-900">
                             {linea.cantidad}
                           </span>
                           <QtyButton label="Más una unidad" onClick={() => incrementar(linea.productoId)}>
@@ -140,16 +144,16 @@ export default function CarritoVista() {
                             eliminar(linea.productoId);
                             appToast.eliminadoCarrito();
                           }}
-                          className="cursor-pointer text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
+                          className="flex h-11 items-center px-2 text-sm font-semibold text-red-600 transition-colors hover:text-red-700"
                         >
                           Eliminar
                         </button>
                       </div>
-                    </div>
 
-                    <div className="shrink-0 text-right">
-                      <p className="text-lg font-bold tabular-nums text-gray-900">{formatoPesos(subtotal)}</p>
-                      <p className={`text-xs ${textSubtle}`}>Subtotal</p>
+                      <div className="mt-4 shrink-0 text-left sm:mt-0 sm:text-right">
+                        <p className="text-xl font-bold tabular-nums text-gray-900">{formatoPesos(subtotal)}</p>
+                        <p className={`text-sm ${textSubtle}`}>Subtotal</p>
+                      </div>
                     </div>
                   </motion.li>
                 );
@@ -157,7 +161,7 @@ export default function CarritoVista() {
             </ul>
 
             <motion.div
-              className="mt-10 rounded-2xl bg-gray-50 p-6 ring-1 ring-gray-200/80 sm:p-8"
+              className="sticky bottom-4 z-20 mt-8 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-gray-200/80 sm:mt-10 sm:p-8"
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -168,7 +172,7 @@ export default function CarritoVista() {
                   {formatoPesos(totalPrecio)}
                 </span>
               </div>
-              <p className={`mt-1 text-xs ${textSubtle}`}>Precios en MXN · envío calculado al pagar</p>
+              <p className={`mt-1 text-sm ${textSubtle}`}>Precios en MXN · envío calculado al pagar</p>
 
               <Link
                 href="/checkout"

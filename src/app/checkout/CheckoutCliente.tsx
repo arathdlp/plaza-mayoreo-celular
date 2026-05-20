@@ -216,15 +216,15 @@ export default function CheckoutCliente() {
     <PageReveal as="main" className="relative flex-1 overflow-hidden bg-white">
       {bgShell}
 
-      <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
         <p className={accentLabel}>Checkout</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827]">Finalizar compra</h1>
-        <p className="mt-2 max-w-xl text-sm text-gray-500">
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#111827] sm:text-3xl">Finalizar compra</h1>
+        <p className="mt-2 max-w-xl text-sm text-gray-500 sm:text-base">
           Completa tus datos de envío y elige cómo quieres pagar.
         </p>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8">
+        <div className="mt-8 grid gap-6 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8">
             {!authReady ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-10 rounded-lg bg-gray-200" />
@@ -314,9 +314,9 @@ export default function CheckoutCliente() {
 
                 <div>
                   <p className={authLabelClass}>Dirección de entrega</p>
-                  <div className="grid gap-4 sm:grid-cols-6">
+                  <div className="mt-3 grid gap-4 sm:grid-cols-6">
                     <div className="sm:col-span-4">
-                      <label htmlFor="checkout-calle" className="sr-only">
+                      <label htmlFor="checkout-calle" className={authLabelClass}>
                         Calle
                       </label>
                       <input
@@ -332,7 +332,7 @@ export default function CheckoutCliente() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label htmlFor="checkout-numero" className="sr-only">
+                      <label htmlFor="checkout-numero" className={authLabelClass}>
                         Número
                       </label>
                       <input
@@ -348,7 +348,7 @@ export default function CheckoutCliente() {
                       />
                     </div>
                     <div className="sm:col-span-3">
-                      <label htmlFor="checkout-colonia" className="sr-only">
+                      <label htmlFor="checkout-colonia" className={authLabelClass}>
                         Colonia
                       </label>
                       <input
@@ -363,7 +363,7 @@ export default function CheckoutCliente() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label htmlFor="checkout-ciudad" className="sr-only">
+                      <label htmlFor="checkout-ciudad" className={authLabelClass}>
                         Ciudad
                       </label>
                       <input
@@ -379,7 +379,7 @@ export default function CheckoutCliente() {
                       />
                     </div>
                     <div className="sm:col-span-1">
-                      <label htmlFor="checkout-cp" className="sr-only">
+                      <label htmlFor="checkout-cp" className={authLabelClass}>
                         Código postal
                       </label>
                       <input
@@ -444,7 +444,7 @@ export default function CheckoutCliente() {
             )}
           </div>
 
-          <aside className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 backdrop-blur-sm lg:sticky lg:top-24">
+          <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm backdrop-blur-sm sm:p-6 lg:sticky lg:top-24">
             <h2 className="text-lg font-bold text-[#111827]">Resumen del pedido</h2>
             <ul className="mt-6 max-h-[min(360px,50vh)] space-y-4 overflow-y-auto pr-1">
               {lineas.map((linea) => {
@@ -476,7 +476,7 @@ export default function CheckoutCliente() {
                       >
                         {linea.nombre}
                       </Link>
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-sm text-gray-500">
                         {linea.cantidad} × {formatoPesos(linea.precio)}
                       </p>
                     </div>
@@ -490,7 +490,7 @@ export default function CheckoutCliente() {
                 <span className="text-base font-medium text-gray-700">Total</span>
                 <span className="text-xl font-semibold tabular-nums text-[#111827]">{formatoPesos(totalPrecio)}</span>
               </div>
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-sm text-gray-500">
                 Los precios finales se validan al confirmar según el catálogo actual.
               </p>
             </div>

@@ -28,14 +28,14 @@ export default function ProductoCard({ producto, mostrarQuitar = false }: Produc
       whileHover={reduceMotion ? undefined : { y: -4 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="cult-animated-border-inner relative flex h-full flex-row sm:flex-col">
+      <div className="cult-animated-border-inner relative flex h-full flex-col">
         <Link
           href={`/productos/${producto.id}`}
           className="absolute inset-0 z-0 rounded-2xl"
           aria-label={`Ver ${producto.nombre}`}
         />
 
-        <div className="relative z-[1] h-[100px] w-[100px] shrink-0 overflow-hidden bg-gray-100 sm:h-36 sm:w-full">
+        <div className="relative z-[1] h-32 w-full shrink-0 overflow-hidden bg-gray-100 sm:h-36">
           <ProductoImagen
             className="absolute inset-0 flex h-full w-full items-center justify-center"
             categoria={producto.categoria}
@@ -54,8 +54,8 @@ export default function ProductoCard({ producto, mostrarQuitar = false }: Produc
           <FavoriteHeartButton productoId={producto.id} />
         </div>
 
-        <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col border-l border-gray-100 p-3 sm:border-l-0 sm:border-t sm:p-5">
-          <p className="border-b border-gray-100 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 sm:text-[11px]">
+        <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col border-t border-gray-100 p-3 sm:p-5">
+          <p className="truncate border-b border-gray-100 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 sm:text-[11px] sm:tracking-[0.16em]">
             {producto.marca}
             <span className="mx-1.5 font-normal text-gray-300">·</span>
             {producto.modelo}
@@ -63,7 +63,7 @@ export default function ProductoCard({ producto, mostrarQuitar = false }: Produc
           <h2 className="mt-2 line-clamp-2 text-sm font-bold leading-snug text-gray-900 sm:text-base">
             {producto.nombre}
           </h2>
-          <p className="mt-auto pt-2 text-lg font-bold tracking-tight text-gray-900 sm:pt-3 sm:text-2xl">
+          <p className="mt-auto pt-2 text-base font-bold tracking-tight text-gray-900 sm:pt-3 sm:text-2xl">
             {formatoPesos(producto.precio)}
           </p>
           <div className="pointer-events-auto relative z-[2] mt-2 w-full min-w-0 space-y-2">

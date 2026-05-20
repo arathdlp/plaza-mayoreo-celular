@@ -294,8 +294,8 @@ export default function TrackingPremiumView({
       </header>
 
       <main className="mx-auto max-w-2xl pb-10">
-        <section className="relative overflow-hidden px-6 py-8 text-center">
-          <CelularConstruccion visualEstado={visualCelular} />
+        <section className="relative overflow-hidden px-4 py-6 text-center sm:px-6 sm:py-8">
+          <CelularConstruccion visualEstado={visualCelular} className="max-w-[180px] sm:max-w-[220px]" />
           <h1 className="mt-5 text-2xl font-medium tracking-tight">{estadoTexto(estado)}</h1>
           <p className="mt-2 text-sm text-gray-500">
             {etaMinutes ? (
@@ -308,7 +308,7 @@ export default function TrackingPremiumView({
           </p>
         </section>
 
-        <section className="relative h-[50vh] min-h-[360px] overflow-hidden border-y border-gray-200 bg-gray-100">
+        <section className="relative h-[45vh] min-h-[300px] overflow-hidden border-y border-gray-200 bg-gray-100 sm:h-[50vh] sm:min-h-[360px]">
           {!apiKeyAvailable ? (
             <div className="absolute inset-x-4 top-4 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900 shadow-sm">
               Falta configurar NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en Vercel.
@@ -363,13 +363,13 @@ export default function TrackingPremiumView({
           <section className="px-4 pt-5">
             <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <BorderBeam />
-              <div className="relative z-10 flex items-center gap-4">
+              <div className="relative z-10 flex items-center gap-3 sm:gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0066FF] text-base font-semibold text-white">
                   {inicial(envio.repartidor_nombre)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{envio.repartidor_nombre}</p>
-                  <p className="text-xs text-gray-500">Tu repartidor</p>
+                  <p className="text-sm text-gray-500">Tu repartidor</p>
                   <div className="mt-1 flex gap-0.5" aria-label="Calificación 5 de 5">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="h-3.5 w-3.5 fill-[#FBBF24] text-[#FBBF24]" />
@@ -381,7 +381,7 @@ export default function TrackingPremiumView({
                     <a
                       href={telRepartidor}
                       aria-label="Llamar al repartidor"
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
+                      className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
                     >
                       <Phone className="h-5 w-5" />
                     </a>
@@ -392,7 +392,7 @@ export default function TrackingPremiumView({
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Enviar mensaje al repartidor"
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0066FF] text-white"
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0066FF] text-white"
                     >
                       <MessageCircle className="h-5 w-5" />
                     </a>
@@ -482,7 +482,7 @@ export default function TrackingPremiumView({
           <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Ruta</p>
             <p className="mt-2 text-lg font-medium">{maneuverLabel(step?.maneuver)}</p>
-            <p className="mt-1 text-sm text-gray-500">{step?.instruction ?? "Esperando indicaciones de ruta"}</p>
+            <p className="mt-1 text-base leading-relaxed text-gray-500">{step?.instruction ?? "Esperando indicaciones de ruta"}</p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-2xl bg-white p-3">
                 <MapPin className="h-4 w-4 text-[#0066FF]" />

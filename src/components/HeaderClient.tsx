@@ -161,14 +161,14 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
       />
 
       <motion.div
-        className="relative mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-4 px-4 sm:h-[4.5rem] sm:px-6 lg:px-8"
+        className="relative mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-2 px-4 sm:h-[4.5rem] sm:gap-4 sm:px-6 lg:px-8"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <Link
           href="/#inicio"
-          className="inline-flex max-w-[11rem] shrink-0 items-center truncate rounded-lg bg-[#0066FF] px-3 py-2 text-[0.8125rem] font-bold leading-tight tracking-tight text-white shadow-md shadow-[#0066FF]/25 transition-opacity hover:opacity-90 sm:max-w-none sm:px-4 sm:py-2 sm:text-sm"
+          className="inline-flex max-w-[9.75rem] shrink-0 items-center truncate rounded-lg bg-[#0066FF] px-3 py-2 text-[0.8125rem] font-bold leading-tight tracking-tight text-white shadow-md shadow-[#0066FF]/25 transition-opacity hover:opacity-90 min-[390px]:max-w-[11rem] sm:max-w-none sm:px-4 sm:py-2 sm:text-sm"
         >
           Plaza Mayoreo del Celular
         </Link>
@@ -194,7 +194,7 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
         >
           <Link
             href="/favoritos"
-            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-red-500 active:scale-95"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-red-500 active:scale-95"
             aria-label="Favoritos"
           >
             <HeartIcon />
@@ -202,7 +202,7 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
           </Link>
           <Link
             href="/carrito"
-            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-700 transition-all duration-300 ease-out hover:bg-gray-100 hover:text-[#0066FF] active:scale-95"
             aria-label="Carrito de compras"
           >
             <CartIcon />
@@ -222,7 +222,7 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
           )}
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100 md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100 md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls="mobile-menu"
@@ -244,7 +244,7 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
+              className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
               onClick={() => setOpen(false)}
             >
               {item.label}
@@ -257,14 +257,14 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
           ) : null}
           <Link
             href="/favoritos"
-            className="rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-red-500"
+            className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-red-500"
             onClick={() => setOpen(false)}
           >
             Favoritos
           </Link>
           <Link
             href="/carrito"
-            className="rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
+            className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-[0.9375rem] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
             onClick={() => setOpen(false)}
           >
             Carrito

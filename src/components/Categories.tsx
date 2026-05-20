@@ -88,15 +88,15 @@ export default function Categories() {
       <div className="mx-auto max-w-7xl">
         <ScrollReveal>
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Categorías</h2>
-            <p className="mt-3 text-lg font-medium text-gray-600">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">Categorías</h2>
+            <p className="mt-3 text-base font-medium text-gray-600 sm:text-lg">
               Encuentra refacciones y equipos para todas las marcas.
             </p>
           </div>
         </ScrollReveal>
 
         <motion.ul
-          className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-5 lg:grid-cols-3"
           variants={reduceMotion ? undefined : staggerContainer}
           initial="hidden"
           whileInView="show"
@@ -106,13 +106,13 @@ export default function Categories() {
             <motion.li key={cat.name} variants={reduceMotion ? undefined : staggerItem} className="h-full">
               <Link
                 href={productosListHref({ categoria: cat.categoria })}
-                className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-8 transition-shadow duration-[600ms] ease-out hover:shadow-[0_12px_40px_-12px_rgba(17,24,39,0.1)]"
+                className="flex h-full min-h-[150px] flex-col rounded-2xl border border-gray-200 bg-white p-4 transition-shadow duration-[600ms] ease-out hover:shadow-[0_12px_40px_-12px_rgba(17,24,39,0.1)] sm:p-8"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-[#0066FF]/5">
                   {cat.icon}
                 </div>
-                <h3 className="mt-5 text-xl font-bold tracking-tight text-gray-900">{cat.name}</h3>
-                <span className="mt-3 text-sm font-semibold text-[#0066FF]">Ver productos →</span>
+                <h3 className="mt-4 break-words text-base font-bold tracking-tight text-gray-900 sm:mt-5 sm:text-xl">{cat.name}</h3>
+                <span className="mt-3 text-sm font-semibold text-[#0066FF]">Ver productos</span>
               </Link>
             </motion.li>
           ))}

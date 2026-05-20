@@ -48,10 +48,10 @@ export default function Hero() {
   return (
     <section
       id="inicio"
-      className="overflow-hidden bg-white px-4 py-20 sm:px-6 lg:px-8 lg:py-32"
+      className="overflow-hidden bg-white px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-32"
     >
       <div className="mx-auto max-w-5xl text-center">
-        <h1 className="text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
+        <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight min-[390px]:text-5xl sm:text-7xl lg:text-8xl">
           <motion.span
             className="block text-[#111827]"
             style={{ fontWeight: 800 }}
@@ -73,7 +73,7 @@ export default function Hero() {
         </h1>
 
         <motion.p
-          className="mx-auto mt-8 max-w-2xl text-xl font-medium leading-relaxed text-[#6B7280] sm:text-2xl"
+          className="mx-auto mt-6 max-w-2xl text-base font-medium leading-relaxed text-[#6B7280] sm:mt-8 sm:text-2xl"
           initial={reduceMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: titleDelay, ease: EASE_OUT }}
@@ -84,20 +84,20 @@ export default function Hero() {
         <HeroTicker />
 
         <motion.div
-          className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
+          className="mt-10 flex flex-col items-center justify-center gap-4 sm:mt-12 sm:flex-row sm:gap-5"
           initial={reduceMotion ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: titleDelay + 0.25, ease: EASE_OUT }}
         >
           <Link
             href="/productos"
-            className="inline-flex items-center justify-center rounded-full bg-[#0066FF] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#3385ff] hover:shadow-xl active:scale-[0.98]"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0066FF] px-8 text-base font-bold text-white shadow-lg shadow-[#0066FF]/25 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#3385ff] hover:shadow-xl active:scale-[0.98] sm:w-auto"
           >
             Ver Productos
           </Link>
           <Link
             href="/servicios"
-            className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white px-8 py-4 text-base font-bold text-[#111827] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#0066FF]/30 hover:shadow-md active:scale-[0.98]"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full border border-gray-300 bg-white px-8 text-base font-bold text-[#111827] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#0066FF]/30 hover:shadow-md active:scale-[0.98] sm:w-auto"
           >
             Solicitar Servicio
           </Link>

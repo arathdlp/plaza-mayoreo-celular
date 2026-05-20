@@ -19,13 +19,13 @@ import {
 } from "@/lib/envio-labels";
 import PagoBadges from "@/components/pedidos/PagoBadges";
 import PedidoTicketButtons from "@/components/pedidos/PedidoTicketButtons";
-import { MiniEntregaBadge } from "@/components/tracking/EntregaCompletada";
 import { ENVIOS_DB_COLUMNS, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { pedidoTrackingHref } from "@/lib/pedido-tracking";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata, siteUrl } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
+import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -112,26 +112,29 @@ function PedidoTarjeta({ pedido, ticketBaseUrl }: { pedido: PedidoRow; ticketBas
   const puedeRastrear = envio && envioEstado && envioActivo(envioEstado);
 
   return (
-    <article className={`${cardStatic} p-6 sm:p-7`}>
+    <article className={`${cardStatic} w-full p-4 sm:p-7`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <p className={`text-xs font-bold uppercase tracking-[0.18em] ${textSubtle}`}>Pedido</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-[#111827]">#{pedido.id}</p>
-          <p className={`mt-2 text-sm ${textMuted}`}>{fecha}</p>
+          <p className={`mt-2 break-words text-sm ${textMuted}`}>{fecha}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
           <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badge}`}
+            className={`inline-flex h-7 shrink-0 items-center rounded-full border px-3 text-xs font-semibold uppercase tracking-wide ${badge}`}
           >
             {etiquetaEstado(pedido.estado)}
           </span>
           <PagoBadges metodoPago={pedido.metodo_pago} estadoPago={pedido.estado_pago} />
           {envio && envioEstado ? (
             envioEstado === "entregado" ? (
-              <MiniEntregaBadge />
+              <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
+                <CheckCircle className="h-3.5 w-3.5" />
+                Entregado
+              </span>
             ) : (
               <span
-                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
+                className={`inline-flex h-7 shrink-0 items-center rounded-full border px-3 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
               >
                 {ETIQUETAS_ESTADO_ENVIO[envioEstado]}
               </span>
@@ -150,15 +153,15 @@ function PedidoTarjeta({ pedido, ticketBaseUrl }: { pedido: PedidoRow; ticketBas
             return (
               <li
                 key={`${pedido.id}-${item.producto_id}`}
-                className="flex items-start justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0"
+                className="flex min-w-0 items-start justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium leading-snug text-[#111827]">{nombre}</p>
-                  <p className={`mt-1 text-xs tabular-nums ${textSubtle}`}>
+                  <p className="break-words font-medium leading-snug text-[#111827]">{nombre}</p>
+                  <p className={`mt-1 text-sm tabular-nums ${textSubtle}`}>
                     {item.cantidad} × {formatoPesos(pu)}
                   </p>
                 </div>
-                <p className="shrink-0 font-semibold tabular-nums text-[#111827]">{formatoPesos(subtotal)}</p>
+                <p className="shrink-0 text-right font-semibold tabular-nums text-[#111827]">{formatoPesos(subtotal)}</p>
               </li>
             );
           })}
@@ -172,14 +175,14 @@ function PedidoTarjeta({ pedido, ticketBaseUrl }: { pedido: PedidoRow; ticketBas
       {puedeRastrear ? (
         <Link
           href={pedidoTrackingHref(pedido.id, envio.repartidor_token)}
-          className={`mt-4 flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold ${btnPrimary}`}
+          className={`mt-4 flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold ${btnPrimary}`}
         >
           Rastrear pedido
         </Link>
       ) : envio && envioEstado === "entregado" ? (
         <Link
           href={pedidoTrackingHref(pedido.id, envio.repartidor_token)}
-          className="mt-4 flex h-11 w-full items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          className="mt-4 flex h-12 w-full items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
         >
           Ver entrega
         </Link>

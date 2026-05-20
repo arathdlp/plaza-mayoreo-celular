@@ -131,21 +131,6 @@ function CompletedPhone({ mini = false }: { mini?: boolean }) {
   );
 }
 
-export function MiniEntregaBadge() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="inline-flex items-center gap-2 rounded-full border border-[#0066FF]/20 bg-[#0066FF]/5 px-3 py-1 text-xs font-semibold text-[#0066FF]"
-    >
-      <span className="relative h-6 w-5">
-        <CompletedPhone mini />
-      </span>
-      Entregado
-    </motion.div>
-  );
-}
-
 export default function EntregaCompletada({
   pedidoId,
   horaEntrega,

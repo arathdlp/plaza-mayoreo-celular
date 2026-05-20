@@ -43,7 +43,7 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0066FF] text-sm font-bold text-white shadow-md shadow-[#0066FF]/25 transition-transform hover:scale-105 active:scale-95"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0066FF] text-sm font-bold text-white shadow-md shadow-[#0066FF]/25 transition-transform hover:scale-105 active:scale-95"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Menú de cuenta"
@@ -59,7 +59,7 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 z-50 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-gray-200 bg-white py-2 shadow-xl shadow-gray-900/10"
+            className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] origin-top-right overflow-hidden rounded-2xl border border-gray-200 bg-white py-2 shadow-xl shadow-gray-900/10"
           >
             <div className="border-b border-gray-100 px-4 py-3">
               <p className="truncate text-sm font-bold text-[#111827]">{profile.nombre}</p>
@@ -75,7 +75,7 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
                   key={item.href}
                   href={item.href}
                   role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
+                  className="flex min-h-11 items-center px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#0066FF]"
                   onClick={() => setOpen(false)}
                 >
                   {item.label}
@@ -85,7 +85,7 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
                 <Link
                   href="/admin"
                   role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-semibold text-[#0066FF] hover:bg-[#0066FF]/5"
+                  className="flex min-h-11 items-center px-4 py-2.5 text-sm font-semibold text-[#0066FF] hover:bg-[#0066FF]/5"
                   onClick={() => setOpen(false)}
                 >
                   Panel admin
@@ -96,7 +96,7 @@ export default function HeaderProfileMenu({ profile }: { profile: HeaderProfile 
               <button
                 type="button"
                 role="menuitem"
-                className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                className="min-h-11 w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
                 onClick={() => void cerrarSesion()}
               >
                 Cerrar sesión

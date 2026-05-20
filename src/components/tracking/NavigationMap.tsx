@@ -771,7 +771,7 @@ export default function NavigationMap({
       {routeLoading && !mapError ? (
         <div className="absolute inset-x-4 bottom-20 z-10 rounded-2xl border border-gray-200 bg-white/95 px-4 py-3 text-center text-sm font-medium text-gray-700 shadow-sm">
           {routeElapsed >= 10 ? (
-            <button type="button" onClick={resetAndRetryRoute} className="font-semibold text-[#0066FF]">
+            <button type="button" onClick={resetAndRetryRoute} className="inline-flex min-h-11 items-center font-semibold text-[#0066FF]">
               Reintentar ruta
             </button>
           ) : (
@@ -782,7 +782,7 @@ export default function NavigationMap({
       {routeError && !mapError ? (
         <div className="absolute inset-x-4 bottom-20 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs text-amber-900 shadow-sm">
           <p>{routeError}</p>
-          <button type="button" onClick={resetAndRetryRoute} className="mt-2 font-semibold text-[#0066FF]">
+          <button type="button" onClick={resetAndRetryRoute} className="mt-2 inline-flex min-h-11 items-center font-semibold text-[#0066FF]">
             Reintentar ruta
           </button>
         </div>
