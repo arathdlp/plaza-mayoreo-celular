@@ -18,13 +18,14 @@ const ENVIOS_DB_COLUMNS_ARR = [
   "paqueteria",
   "tipo",
   "created_at",
+  "repartidor_id",
 ] as const;
 
 export const ENVIOS_DB_COLUMNS = ENVIOS_DB_COLUMNS_ARR.join(", ");
 
 /** Literal para .select() con tipos correctos en Supabase. */
 export const ENVIOS_DB_SELECT =
-  "id, pedido_id, lat_actual, lng_actual, estado, updated_at, token, destino_lat, destino_lng, tiempo_estimado, repartidor_nombre, repartidor_telefono, numero_guia, paqueteria, tipo, created_at" as const;
+  "id, pedido_id, lat_actual, lng_actual, estado, updated_at, token, destino_lat, destino_lng, tiempo_estimado, repartidor_nombre, repartidor_telefono, numero_guia, paqueteria, tipo, created_at, repartidor_id" as const;
 
 export type EnvioDbRow = {
   id: number;
@@ -43,6 +44,7 @@ export type EnvioDbRow = {
   paqueteria: string | null;
   tipo: TipoEnvio;
   created_at: string;
+  repartidor_id: string | null;
 };
 
 export function mapEnvioFromDb(
@@ -67,5 +69,6 @@ export function mapEnvioFromDb(
     repartidor_token: row.token,
     tiempo_estimado_minutos: row.tiempo_estimado,
     updated_at: row.updated_at,
+    repartidor_id: row.repartidor_id ?? null,
   };
 }

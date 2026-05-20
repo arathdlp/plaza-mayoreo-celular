@@ -1,4 +1,5 @@
 import { parseEnvioId, registrarUbicacionRepartidor } from "@/lib/envio-repartidor";
+import { getRepartidorSession } from "@/lib/repartidor-session";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -24,7 +25,14 @@ export async function POST(
     return NextResponse.json({ error: "Coordenadas inválidas." }, { status: 400 });
   }
 
-  const result = await registrarUbicacionRepartidor(envioId, body.token ?? "", lat!, lng!);
+  const session = await getRepartidorSession();
+  const result = await registrarUbicacionRepartidor(
+    envioId,
+    body.token ?? null,
+    lat!,
+    lng!,
+    session?.id,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }

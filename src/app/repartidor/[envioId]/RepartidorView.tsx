@@ -40,9 +40,18 @@ export default function RepartidorView() {
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  const authBody = useCallback(
+    () => (token ? { token } : {}),
+    [token],
+  );
 
   const fetchCtx = useCallback(async () => {
-    const res = await fetch(`/api/repartidor/${envioId}?token=${encodeURIComponent(token)}`);
+    const url = token
+      ? `/api/repartidor/${envioId}?token=${encodeURIComponent(token)}`
+      : `/api/repartidor/${envioId}`;
+    const res = await fetch(url, { credentials: "include" });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error ?? "No se pudo cargar el envío.");
@@ -54,13 +63,8 @@ export default function RepartidorView() {
   }, [envioId, token]);
 
   useEffect(() => {
-    if (!token) {
-      setError("Falta el token en el enlace.");
-      setLoading(false);
-      return;
-    }
     void fetchCtx().finally(() => setLoading(false));
-  }, [fetchCtx, token]);
+  }, [fetchCtx]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -74,15 +78,34 @@ export default function RepartidorView() {
     );
   }, []);
 
+  const releaseWakeLock = useCallback(async () => {
+    try {
+      await wakeLockRef.current?.release();
+    } catch {
+      /* ignorar */
+    }
+    wakeLockRef.current = null;
+  }, []);
+
+  const requestWakeLock = useCallback(async () => {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+    } catch {
+      /* permiso denegado o no soportado */
+    }
+  }, []);
+
   const sendUbicacion = useCallback(
     async (lat: number, lng: number) => {
       await fetch(`/api/repartidor/${envioId}/ubicacion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, lat, lng }),
+        credentials: "include",
+        body: JSON.stringify({ ...authBody(), lat, lng }),
       });
     },
-    [envioId, token],
+    [authBody, envioId],
   );
 
   const stopTracking = useCallback(() => {
@@ -121,12 +144,39 @@ export default function RepartidorView() {
 
   useEffect(() => {
     if (envio?.estado === "en_camino" || envio?.estado === "llegando") {
+      void requestWakeLock();
       startTracking();
-      return stopTracking;
+      return () => {
+        void releaseWakeLock();
+        stopTracking();
+      };
     }
+    void releaseWakeLock();
     stopTracking();
-    return stopTracking;
-  }, [envio?.estado, startTracking, stopTracking]);
+    return () => {
+      void releaseWakeLock();
+      stopTracking();
+    };
+  }, [envio?.estado, releaseWakeLock, requestWakeLock, startTracking, stopTracking]);
+
+  useEffect(() => {
+    return () => {
+      void releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        (envio?.estado === "en_camino" || envio?.estado === "llegando")
+      ) {
+        void requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [envio?.estado, requestWakeLock]);
 
   const mapsUrl = useMemo(() => {
     if (!ctx) return null;
@@ -149,8 +199,9 @@ export default function RepartidorView() {
     const res = await fetch(`/api/repartidor/${envioId}/estado`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
-        token,
+        ...authBody(),
         estado: estadoNuevo,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }),
@@ -161,8 +212,11 @@ export default function RepartidorView() {
       setError(json.error ?? "No se pudo actualizar.");
       return;
     }
-    if (estadoNuevo === "entregado" && json.whatsappEntregado) {
-      window.open(json.whatsappEntregado as string, "_blank", "noopener,noreferrer");
+    if (estadoNuevo === "entregado") {
+      await releaseWakeLock();
+      if (json.whatsappEntregado) {
+        window.open(json.whatsappEntregado as string, "_blank", "noopener,noreferrer");
+      }
     }
     await fetchCtx();
   }
@@ -202,10 +256,20 @@ export default function RepartidorView() {
 
   if (error && !ctx) {
     return (
-      <motion.div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
-        <p className="text-xl font-bold text-red-400">Enlace no válido</p>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
+        <p className="text-xl font-bold text-red-400">
+          {error.includes("acceso") ? "Sin acceso" : "Enlace no válido"}
+        </p>
         <p className="mt-3 text-sm text-white/70">{error}</p>
-      </motion.div>
+        {!token ? (
+          <a
+            href="/repartidor/login"
+            className="mt-6 rounded-2xl bg-[#0066FF] px-6 py-3 text-sm font-bold"
+          >
+            Iniciar sesión
+          </a>
+        ) : null}
+      </div>
     );
   }
 
@@ -213,6 +277,7 @@ export default function RepartidorView() {
 
   const estado = envio.estado;
   const entregado = estado === "entregado";
+  const trackingActivo = estado === "en_camino" || estado === "llegando";
   const waEntregado = urlWhatsApp(
     ctx.cliente.telefono,
     mensajeWhatsAppEntregado(ctx.pedido.id),
@@ -220,7 +285,12 @@ export default function RepartidorView() {
 
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0f] pb-10 text-white">
-      <div className="mx-auto max-w-lg px-4 pt-6 sm:px-6">
+      {trackingActivo ? (
+        <div className="fixed inset-x-0 top-0 z-50 bg-[#0066FF] px-4 py-2.5 text-center text-sm font-semibold shadow-lg">
+          📍 Tracking activo. Mantén esta pestaña abierta para mejor precisión.
+        </div>
+      ) : null}
+      <div className={`mx-auto max-w-lg px-4 sm:px-6 ${trackingActivo ? "pt-16" : "pt-6"}`}>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#4d9fff]">Repartidor</p>
         <h1 className="mt-2 text-2xl font-bold">Pedido #{ctx.pedido.id}</h1>
 

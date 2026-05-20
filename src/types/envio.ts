@@ -23,4 +23,5 @@ export type EnvioRow = {
   repartidor_token: string;
   tiempo_estimado_minutos: number | null;
   updated_at: string;
+  repartidor_id?: string | null;
 };

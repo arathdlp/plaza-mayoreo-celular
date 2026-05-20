@@ -1,4 +1,5 @@
 import { actualizarEstadoRepartidor, parseEnvioId } from "@/lib/envio-repartidor";
+import { getRepartidorSession } from "@/lib/repartidor-session";
 import { ESTADOS_ENVIO, type EstadoEnvio } from "@/types/envio";
 import { NextResponse } from "next/server";
 
@@ -28,11 +29,13 @@ export async function PATCH(
       ? { lat: body.lat!, lng: body.lng! }
       : undefined;
 
+  const session = await getRepartidorSession();
   const result = await actualizarEstadoRepartidor(
     envioId,
-    body.token ?? "",
+    body.token ?? null,
     body.estado as EstadoEnvio,
     coords,
+    session?.id,
   );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 403 });

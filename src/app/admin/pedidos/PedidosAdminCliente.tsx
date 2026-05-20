@@ -10,20 +10,11 @@ import {
   envioActivo,
 } from "@/lib/envio-labels";
 import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
-import {
-  claseBadgeEstadoPago,
-  etiquetaEstadoPago,
-  mostrarEstadoPago,
-} from "@/lib/pedido-pago";
+import PagoBadges from "@/components/pedidos/PagoBadges";
 import { createClient } from "@/lib/supabase/client";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-function etiquetaMetodo(m: string | null): string {
-  if (m === "mercado_pago") return "Mercado Pago";
-  return "Pagar al recibir";
-}
 
 function etiquetaEstado(e: string): string {
   const labels: Record<string, string> = {
@@ -128,14 +119,13 @@ export default function PedidosAdminCliente({
               <th className="px-4 py-4 text-right">Total</th>
               <th className="px-4 py-4">Estado</th>
               <th className="px-4 py-4">Envío / mapa</th>
-              <th className="px-4 py-4">Estado pago</th>
-              <th className="px-4 py-4">Método</th>
+              <th className="px-4 py-4">Pago</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {pedidos.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-14 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
                   No hay pedidos registrados todavía.
                 </td>
               </tr>
@@ -204,17 +194,8 @@ export default function PedidosAdminCliente({
                       ) : null}
                     </td>
                     <td className="px-4 py-4">
-                      {mostrarEstadoPago(p.metodo_pago, p.estado_pago) ? (
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${claseBadgeEstadoPago(p.estado_pago)}`}
-                        >
-                          {etiquetaEstadoPago(p.estado_pago)}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
+                      <PagoBadges metodoPago={p.metodo_pago} estadoPago={p.estado_pago} />
                     </td>
-                    <td className="px-4 py-4 text-gray-600">{etiquetaMetodo(p.metodo_pago)}</td>
                   </tr>
                 );
               })

@@ -3,6 +3,7 @@ import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-d
 import { distanciaMetros } from "@/lib/geo";
 import { parseCoord } from "@/lib/google-maps";
 import { estadoPedidoPorEnvio, patchPedidoAlEntregar } from "@/lib/pedido-flujo";
+import { enviarTicketSiPagado } from "@/lib/ticket-service";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { RepartidorContext, RepartidorPedidoItem } from "@/types/repartidor";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
@@ -10,6 +11,46 @@ import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 export function parseEnvioId(raw: string): number | null {
   const id = Number.parseInt(raw, 10);
   return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+type AuthOpts = {
+  token?: string | null;
+  repartidorId?: string | null;
+};
+
+async function authorizeEnvioAccess(
+  envioId: number,
+  opts: AuthOpts,
+): Promise<{ ok: true; row: EnvioDbRow } | { ok: false; error: string }> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return { ok: false, error: "Servidor no configurado." };
+
+  const { data, error } = await supabase
+    .from("envios")
+    .select(ENVIOS_DB_SELECT)
+    .eq("id", envioId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { ok: false, error: "Enlace inválido o expirado." };
+  }
+
+  const row = data as unknown as EnvioDbRow;
+  const token = opts.token?.trim();
+
+  if (token && row.token === token) {
+    return { ok: true, row };
+  }
+
+  if (opts.repartidorId && row.repartidor_id === opts.repartidorId) {
+    return { ok: true, row };
+  }
+
+  if (token) {
+    return { ok: false, error: "Enlace inválido o expirado." };
+  }
+
+  return { ok: false, error: "No tienes acceso a este envío." };
 }
 
 async function syncPedidoConEnvio(pedidoId: number, envioEstado: EstadoEnvio) {
@@ -26,6 +67,7 @@ async function syncPedidoConEnvio(pedidoId: number, envioEstado: EstadoEnvio) {
 
     const patch = patchPedidoAlEntregar((pedido?.metodo_pago as string) ?? null);
     await supabase.from("pedidos").update(patch).eq("id", pedidoId);
+    await enviarTicketSiPagado(pedidoId);
     return;
   }
 
@@ -34,34 +76,10 @@ async function syncPedidoConEnvio(pedidoId: number, envioEstado: EstadoEnvio) {
   }
 }
 
-export async function validarTokenRepartidor(envioId: number, token: string | null) {
-  const ctx = await getRepartidorContext(envioId, token);
-  if (!ctx.ok) return ctx;
-  return { ok: true as const, envio: ctx.data.envio };
-}
-
-export async function getRepartidorContext(
-  envioId: number,
-  token: string | null,
-): Promise<
+async function buildContextFromRow(row: EnvioDbRow): Promise<
   { ok: true; data: RepartidorContext } | { ok: false; error: string }
 > {
-  if (!token?.trim()) return { ok: false, error: "Token requerido." };
-  const supabase = createServiceRoleClient();
-  if (!supabase) return { ok: false, error: "Servidor no configurado." };
-
-  const { data, error } = await supabase
-    .from("envios")
-    .select(ENVIOS_DB_SELECT)
-    .eq("id", envioId)
-    .eq("token", token.trim())
-    .maybeSingle();
-
-  if (error || !data) {
-    return { ok: false, error: "Enlace inválido o expirado." };
-  }
-
-  const row = data as unknown as EnvioDbRow;
+  const supabase = createServiceRoleClient()!;
 
   const { data: pedido, error: pedErr } = await supabase
     .from("pedidos")
@@ -98,7 +116,10 @@ export async function getRepartidorContext(
   const itemsRaw = (pedido.pedido_items ?? []) as {
     cantidad: number;
     precio_unitario: number | string;
-    productos: { nombre: string; imagen_url: string | null } | { nombre: string; imagen_url: string | null }[] | null;
+    productos:
+      | { nombre: string; imagen_url: string | null }
+      | { nombre: string; imagen_url: string | null }[]
+      | null;
   }[];
 
   const items: RepartidorPedidoItem[] = itemsRaw.map((it) => {
@@ -141,13 +162,35 @@ export async function getRepartidorContext(
   };
 }
 
+export async function validarTokenRepartidor(
+  envioId: number,
+  token: string | null,
+  repartidorId?: string | null,
+) {
+  const auth = await authorizeEnvioAccess(envioId, { token, repartidorId });
+  if (!auth.ok) return auth;
+  const envio = mapEnvioFromDb(auth.row);
+  return { ok: true as const, envio };
+}
+
+export async function getRepartidorContext(
+  envioId: number,
+  token: string | null,
+  repartidorId?: string | null,
+): Promise<{ ok: true; data: RepartidorContext } | { ok: false; error: string }> {
+  const auth = await authorizeEnvioAccess(envioId, { token, repartidorId });
+  if (!auth.ok) return auth;
+  return buildContextFromRow(auth.row);
+}
+
 export async function registrarUbicacionRepartidor(
   envioId: number,
-  token: string,
+  token: string | null,
   lat: number,
   lng: number,
+  repartidorId?: string | null,
 ) {
-  const auth = await validarTokenRepartidor(envioId, token);
+  const auth = await validarTokenRepartidor(envioId, token, repartidorId);
   if (!auth.ok) return auth;
 
   if (auth.envio.estado === "entregado") {
@@ -198,11 +241,12 @@ export async function registrarUbicacionRepartidor(
 
 export async function actualizarEstadoRepartidor(
   envioId: number,
-  token: string,
+  token: string | null,
   estado: EstadoEnvio,
   coords?: { lat: number; lng: number },
+  repartidorId?: string | null,
 ) {
-  const auth = await validarTokenRepartidor(envioId, token);
+  const auth = await validarTokenRepartidor(envioId, token, repartidorId);
   if (!auth.ok) return auth;
 
   const supabase = createServiceRoleClient()!;
@@ -234,7 +278,7 @@ export async function actualizarEstadoRepartidor(
 
   let whatsappEntregado: string | null = null;
   if (estado === "entregado") {
-    const ctx = await getRepartidorContext(envioId, token);
+    const ctx = await getRepartidorContext(envioId, token, repartidorId);
     if (ctx.ok && ctx.data.cliente.telefono) {
       whatsappEntregado = urlWhatsApp(
         ctx.data.cliente.telefono,

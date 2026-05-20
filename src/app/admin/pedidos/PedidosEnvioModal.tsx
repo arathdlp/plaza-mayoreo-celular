@@ -1,6 +1,11 @@
 "use client";
 
-import { asignarEnvioPedido, type AsignarEnvioInput } from "@/app/admin/pedidos/envio-actions";
+import {
+  asignarEnvioPedido,
+  getRepartidoresSelect,
+  type AsignarEnvioInput,
+} from "@/app/admin/pedidos/envio-actions";
+import { appToast } from "@/lib/toast";
 import {
   BADGE_ESTADO_ENVIO,
   ETIQUETAS_ESTADO_ENVIO,
@@ -20,8 +25,12 @@ type Props = {
 export default function PedidosEnvioModal({ pedidoId, envio, onClose }: Props) {
   const router = useRouter();
   const [tipo, setTipo] = useState<TipoEnvio>((envio?.tipo as TipoEnvio) ?? "local");
+  const [repartidorId, setRepartidorId] = useState(envio?.repartidor_id ?? "");
   const [repartidorNombre, setRepartidorNombre] = useState(envio?.repartidor_nombre ?? "");
   const [repartidorTelefono, setRepartidorTelefono] = useState(envio?.repartidor_telefono ?? "");
+  const [repartidores, setRepartidores] = useState<
+    { id: string; nombre: string; telefono: string; email: string }[]
+  >([]);
   const [paqueteriaEmpresa, setPaqueteriaEmpresa] = useState(envio?.paqueteria_empresa ?? "");
   const [numeroGuia, setNumeroGuia] = useState(envio?.numero_guia ?? "");
   const [tiempoEstimado, setTiempoEstimado] = useState(
@@ -34,6 +43,11 @@ export default function PedidosEnvioModal({ pedidoId, envio, onClose }: Props) {
   const [tokenLink, setTokenLink] = useState<{ envioId: number; token: string } | null>(
     envio ? { envioId: envio.id, token: envio.repartidor_token } : null,
   );
+
+  useEffect(() => {
+    if (tipo !== "local") return;
+    void getRepartidoresSelect().then((list) => setRepartidores(list));
+  }, [tipo]);
 
   useEffect(() => {
     if (!liveEnvio?.id) return;
@@ -65,6 +79,7 @@ export default function PedidosEnvioModal({ pedidoId, envio, onClose }: Props) {
     const input: AsignarEnvioInput = {
       pedidoId,
       tipo,
+      repartidorId: repartidorId || undefined,
       repartidorNombre,
       repartidorTelefono,
       paqueteriaEmpresa,
@@ -77,6 +92,7 @@ export default function PedidosEnvioModal({ pedidoId, envio, onClose }: Props) {
       setError(res.error);
       return;
     }
+    appToast.success(liveEnvio ? "Envío actualizado" : "Envío asignado");
     setTokenLink({ envioId: res.envioId, token: res.token });
     router.refresh();
   }
@@ -139,6 +155,29 @@ export default function PedidosEnvioModal({ pedidoId, envio, onClose }: Props) {
 
           {tipo === "local" ? (
             <>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Repartidor</label>
+                <select
+                  value={repartidorId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setRepartidorId(id);
+                    const rep = repartidores.find((r) => r.id === id);
+                    if (rep) {
+                      setRepartidorNombre(rep.nombre);
+                      setRepartidorTelefono(rep.telefono);
+                    }
+                  }}
+                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Seleccionar repartidor…</option>
+                  {repartidores.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nombre} · {r.telefono}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">Nombre del repartidor</label>
                 <input

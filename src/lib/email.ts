@@ -48,6 +48,7 @@ async function enviarEmail(options: {
   to: string;
   subject: string;
   html: string;
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<void> {
   const transporter = createMailTransporter();
   if (!transporter) return;
@@ -57,6 +58,7 @@ async function enviarEmail(options: {
     to: options.to,
     subject: options.subject,
     html: options.html,
+    attachments: options.attachments,
   });
 }
 
@@ -362,6 +364,38 @@ export async function cargarDatosEmailPedido(
     items,
     cliente,
   };
+}
+
+export async function enviarEmailTicketCompra(options: {
+  pedidoId: number;
+  clienteNombre: string;
+  clienteEmail: string;
+  ticketUrl: string;
+  pdf: Buffer;
+  filename: string;
+}): Promise<void> {
+  try {
+    const nombre = options.clienteNombre.trim() || "cliente";
+    const html = emailLayout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#111827;">
+        Tu ticket de compra
+      </h1>
+      <p style="margin:0;font-size:15px;color:#4b5563;line-height:1.6;">
+        Hola ${escapeHtml(nombre)}, adjuntamos el comprobante de tu pedido <strong>#${options.pedidoId}</strong>.
+        Consérvalo para tu garantía.
+      </p>
+      ${ctaButton(options.ticketUrl, "Descargar ticket PDF")}
+    `);
+
+    await enviarEmail({
+      to: options.clienteEmail,
+      subject: `Tu ticket de compra - ${STORE_NAME}`,
+      html,
+      attachments: [{ filename: options.filename, content: options.pdf }],
+    });
+  } catch (err) {
+    console.error("[email] ticket compra", err);
+  }
 }
 
 export async function enviarEmailPagoConfirmado(

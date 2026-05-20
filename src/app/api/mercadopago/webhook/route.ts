@@ -1,4 +1,5 @@
 import { cargarDatosEmailPedido, enviarEmailPagoConfirmado } from "@/lib/email";
+import { enviarTicketSiPagado } from "@/lib/ticket-service";
 import { fetchMercadoPagoPayment } from "@/lib/mercadopago-payments";
 import { getMercadoPagoAccessToken } from "@/lib/mercadopago";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -79,6 +80,7 @@ async function processPaymentNotification(paymentId: string): Promise<void> {
           emailData.cliente,
         );
       }
+      await enviarTicketSiPagado(pedidoId);
     } catch {
       /* no bloquear el webhook por fallo de email */
     }

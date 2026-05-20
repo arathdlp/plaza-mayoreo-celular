@@ -8,4 +8,5 @@ export const appToast = {
   favoritoQuitado: () => toast("Eliminado de favoritos"),
   error: (msg: string) => toast.error(msg),
   perfilGuardado: () => toast.success("Perfil actualizado"),
+  success: (msg: string) => toast.success(msg),
 };

@@ -17,16 +17,13 @@ import {
   ETIQUETAS_ESTADO_ENVIO,
   envioActivo,
 } from "@/lib/envio-labels";
-import {
-  claseBadgeEstadoPago,
-  etiquetaEstadoPago,
-  mostrarEstadoPago,
-} from "@/lib/pedido-pago";
+import PagoBadges from "@/components/pedidos/PagoBadges";
+import PedidoTicketButtons from "@/components/pedidos/PedidoTicketButtons";
 import { ENVIOS_DB_COLUMNS, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { pedidoTrackingHref } from "@/lib/pedido-tracking";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { formatoPesos } from "@/lib/format";
-import { pageMetadata } from "@/lib/seo";
+import { pageMetadata, siteUrl } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -66,11 +63,6 @@ function parseNum(v: number | string): number {
   return typeof v === "string" ? parseFloat(v) : v;
 }
 
-function etiquetaMetodo(m: string | null): string {
-  if (m === "mercado_pago") return "Mercado Pago";
-  return "Pagar al recibir";
-}
-
 function etiquetaEstado(estado: string): string {
   const labels: Record<string, string> = {
     pendiente: "Pendiente",
@@ -101,7 +93,7 @@ function mapPedidoRow(raw: PedidoRowRaw): PedidoRow {
   return { ...rest, envio };
 }
 
-function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
+function PedidoTarjeta({ pedido, ticketBaseUrl }: { pedido: PedidoRow; ticketBaseUrl: string }) {
   const total = parseNum(pedido.total);
   const fecha = new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
@@ -114,7 +106,8 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
   const badge =
     badgeEstado[pedido.estado as keyof typeof badgeEstado] ??
     "border-gray-200 bg-gray-100 text-gray-700";
-  const pagoBadge = mostrarEstadoPago(pedido.metodo_pago, pedido.estado_pago);
+  const pagado = pedido.estado_pago === "pagado";
+  const ticketUrl = `${ticketBaseUrl}/api/pedidos/${pedido.id}/ticket`;
   const puedeRastrear = envio && envioEstado && envioActivo(envioEstado);
 
   return (
@@ -131,16 +124,7 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
           >
             {etiquetaEstado(pedido.estado)}
           </span>
-          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-            {etiquetaMetodo(pedido.metodo_pago)}
-          </span>
-          {pagoBadge ? (
-            <span
-              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${claseBadgeEstadoPago(pedido.estado_pago)}`}
-            >
-              {etiquetaEstadoPago(pedido.estado_pago)}
-            </span>
-          ) : null}
+          <PagoBadges metodoPago={pedido.metodo_pago} estadoPago={pedido.estado_pago} />
           {envio && envioEstado ? (
             <span
               className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${BADGE_ESTADO_ENVIO[envioEstado]}`}
@@ -195,6 +179,7 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
           Ver entrega
         </Link>
       ) : null}
+      {pagado ? <PedidoTicketButtons pedidoId={pedido.id} ticketUrl={ticketUrl} /> : null}
     </article>
   );
 }
@@ -240,6 +225,7 @@ export default async function PedidosPage({
     .order("created_at", { ascending: false });
 
   const pedidos = ((pedidosRaw ?? []) as unknown as PedidoRowRaw[]).map(mapPedidoRow);
+  const ticketBaseUrl = siteUrl().origin;
 
   return (
     <PrivateChrome
@@ -282,7 +268,7 @@ export default async function PedidosPage({
         <ul className="space-y-6">
           {pedidos.map((p) => (
             <li key={p.id}>
-              <PedidoTarjeta pedido={p} />
+              <PedidoTarjeta pedido={p} ticketBaseUrl={ticketBaseUrl} />
             </li>
           ))}
         </ul>
