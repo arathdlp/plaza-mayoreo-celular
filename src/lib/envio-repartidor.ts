@@ -13,6 +13,30 @@ export function parseEnvioId(raw: string): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+/** Token de acceso del repartidor desde query string o body JSON. */
+export function tokenFromRepartidorRequest(
+  request: Request,
+  body?: { token?: string | null },
+): string | null {
+  const fromQuery = new URL(request.url).searchParams.get("token");
+  const fromBody = body?.token;
+  const token = (fromQuery ?? fromBody)?.trim();
+  return token || null;
+}
+
+function isAuthErrorRepartidor(message: string): boolean {
+  return (
+    message.includes("inválido") ||
+    message.includes("expirado") ||
+    message.includes("acceso") ||
+    message.includes("No autorizado")
+  );
+}
+
+export function httpStatusRepartidorError(message: string): 401 | 403 {
+  return isAuthErrorRepartidor(message) ? 401 : 403;
+}
+
 type AuthOpts = {
   token?: string | null;
   repartidorId?: string | null;

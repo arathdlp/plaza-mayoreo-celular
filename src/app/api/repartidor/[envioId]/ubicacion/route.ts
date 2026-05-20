@@ -1,4 +1,9 @@
-import { parseEnvioId, registrarUbicacionRepartidor } from "@/lib/envio-repartidor";
+import {
+  httpStatusRepartidorError,
+  parseEnvioId,
+  registrarUbicacionRepartidor,
+  tokenFromRepartidorRequest,
+} from "@/lib/envio-repartidor";
 import { getRepartidorSession } from "@/lib/repartidor-session";
 import { NextResponse } from "next/server";
 
@@ -25,16 +30,20 @@ export async function POST(
     return NextResponse.json({ error: "Coordenadas inválidas." }, { status: 400 });
   }
 
+  const accessToken = tokenFromRepartidorRequest(request, body);
   const session = await getRepartidorSession();
   const result = await registrarUbicacionRepartidor(
     envioId,
-    body.token ?? null,
+    accessToken,
     lat!,
     lng!,
     session?.id,
   );
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json(
+      { error: result.error },
+      { status: httpStatusRepartidorError(result.error) },
+    );
   }
   return NextResponse.json({ ok: true });
 }

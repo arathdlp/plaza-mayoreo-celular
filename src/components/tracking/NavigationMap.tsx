@@ -237,11 +237,17 @@ export default function NavigationMap({
   const animFrameRef = useRef<number | null>(null);
   const pulseIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeRequestIdRef = useRef(0);
+  const geocodedRef = useRef(false);
+  const destinationRef = useRef<LatLng | null>(null);
+  const destAddressKeyRef = useRef("");
+  const resolvingDestRef = useRef(false);
+  const onStatsRef = useRef(onStats);
 
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [resolvedDest, setResolvedDest] = useState<LatLng | null>(null);
-  const [resolvingDest, setResolvingDest] = useState(false);
+  const [destReady, setDestReady] = useState(false);
+
+  onStatsRef.current = onStats;
 
   const iconFactory = useCallback(
     (rotation: number) => (marker === "bike" ? bikeMarkerIcon : repartidorMarkerIcon)(rotation),
@@ -326,40 +332,64 @@ export default function NavigationMap({
 
   useEffect(() => {
     let cancelled = false;
+    const addressKey = destinationAddress.trim();
 
     async function resolveDestination() {
+      if (!isFallbackCenter(destination)) {
+        destinationRef.current = destination;
+        geocodedRef.current = true;
+        destAddressKeyRef.current = addressKey;
+        setDestReady(true);
+        return;
+      }
+
+      if (destAddressKeyRef.current !== addressKey) {
+        geocodedRef.current = false;
+        destinationRef.current = null;
+        setDestReady(false);
+      }
+
+      if (geocodedRef.current && destinationRef.current) {
+        return;
+      }
+
+      if (!addressKey) {
+        destinationRef.current = destination;
+        geocodedRef.current = true;
+        setDestReady(true);
+        return;
+      }
+
+      if (geocodedRef.current) return;
+      geocodedRef.current = true;
+      destAddressKeyRef.current = addressKey;
+      resolvingDestRef.current = true;
+
       try {
-        setResolvingDest(true);
-        let dest = destination;
+        console.log(`${LOG_PREFIX} Geocodificando destino:`, addressKey);
+        const geo = await geocodeAddress(addressKey);
+        if (cancelled) return;
 
-        if (isFallbackCenter(dest) && destinationAddress.trim()) {
-          console.log(`${LOG_PREFIX} Geocodificando destino:`, destinationAddress);
-          const geo = await geocodeAddress(destinationAddress);
-          if (geo) dest = geo;
-          else {
-            console.warn(`${MAP_ERROR_PREFIX} Geocoding falló para destino`);
-            onStats?.({
-              distanceText: "—",
-              durationText: "—",
-              distanceValue: 0,
-              durationValue: 0,
-              speedKmh,
-              routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
-            });
-            setResolvingDest(false);
-            return;
-          }
-        }
-
-        if (!cancelled) {
-          setResolvedDest(dest);
-          setResolvingDest(false);
-          console.log(`${LOG_PREFIX} Destino resuelto`, dest);
+        if (geo) {
+          destinationRef.current = geo;
+          setDestReady(true);
+          console.log(`${LOG_PREFIX} Destino resuelto`, geo);
+        } else {
+          console.warn(`${MAP_ERROR_PREFIX} Geocoding falló para destino`);
+          setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+          onStatsRef.current?.({
+            distanceText: "—",
+            durationText: "—",
+            distanceValue: 0,
+            durationValue: 0,
+            speedKmh,
+            routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
+          });
         }
       } catch (err) {
         console.error(`${MAP_ERROR_PREFIX} Error resolviendo destino`, err);
         setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
-        onStats?.({
+        onStatsRef.current?.({
           distanceText: "—",
           durationText: "—",
           distanceValue: 0,
@@ -367,7 +397,8 @@ export default function NavigationMap({
           speedKmh,
           routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
         });
-        setResolvingDest(false);
+      } finally {
+        resolvingDestRef.current = false;
       }
     }
 
@@ -375,11 +406,12 @@ export default function NavigationMap({
     return () => {
       cancelled = true;
     };
-  }, [destination, destinationAddress, onStats, speedKmh]);
+  }, [destination.lat, destination.lng, destinationAddress, speedKmh]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !resolvedDest) return;
+    const resolvedDest = destinationRef.current;
+    if (!map || !destReady || !resolvedDest) return;
 
     try {
       destinationMarkerRef.current?.setMap(null);
@@ -398,7 +430,7 @@ export default function NavigationMap({
       console.error(`${MAP_ERROR_PREFIX} Error creando marcador destino`, err);
       setMapError("No se pudo mostrar el destino en el mapa.");
     }
-  }, [mapReady, resolvedDest]);
+  }, [mapReady, destReady]);
 
   const updateMarkerPosition = useCallback(
     (pos: LatLng, rotation: number) => {
@@ -519,8 +551,8 @@ export default function NavigationMap({
   const requestRoute = useCallback(async () => {
     const map = mapRef.current;
     const origin = current;
-    const dest = resolvedDest;
-    if (!map || !origin || !dest || resolvingDest) return;
+    const dest = destinationRef.current;
+    if (!map || !origin || !dest || resolvingDestRef.current) return;
 
     const shouldRoute =
       !lastRouteOriginRef.current ||
@@ -563,7 +595,7 @@ export default function NavigationMap({
       parsedStepsRef.current = steps;
       const stats = routeStatsFromRoutesApi(route, speedKmh, 0, steps);
       lastStatsRef.current = stats;
-      onStats?.(stats);
+      onStatsRef.current?.(stats);
       console.log(`${LOG_PREFIX} Ruta calculada con Routes API, pasos:`, steps.length);
 
       if (!followCurrent) {
@@ -577,7 +609,7 @@ export default function NavigationMap({
       const message = err instanceof Error ? err.message : directionsErrorMessage("ROUTES_API_FORBIDDEN");
       console.error(`${MAP_ERROR_PREFIX} Error en Routes API`, err);
       setMapError(message);
-      onStats?.({
+      onStatsRef.current?.({
         distanceText: "—",
         durationText: "—",
         distanceValue: 0,
@@ -586,13 +618,13 @@ export default function NavigationMap({
         routeError: message,
       });
     }
-  }, [current, followCurrent, onStats, resolvedDest, resolvingDest, speedKmh]);
+  }, [current, followCurrent, speedKmh]);
 
   useEffect(() => {
-    if (mapReady && current && resolvedDest) {
+    if (mapReady && current && destReady && destinationRef.current) {
       void requestRoute();
     }
-  }, [mapReady, current, resolvedDest, requestRoute]);
+  }, [mapReady, current, destReady, requestRoute]);
 
   useEffect(() => {
     if (!current || parsedStepsRef.current.length === 0) return;
@@ -621,9 +653,9 @@ export default function NavigationMap({
         speedKmh,
       };
       lastStatsRef.current = next;
-      onStats?.(next);
+      onStatsRef.current?.(next);
     }
-  }, [current, onStats, speak, speedKmh]);
+  }, [current, speak, speedKmh]);
 
   return (
     <div className={`relative h-full w-full bg-slate-100 ${className}`} aria-label="Mapa de navegación">

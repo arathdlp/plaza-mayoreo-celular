@@ -220,10 +220,16 @@ export default function RepartidorView() {
     [token],
   );
 
+  const apiUrl = useCallback(
+    (path: string) => {
+      const base = `/api/repartidor/${envioId}${path}`;
+      return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+    },
+    [envioId, token],
+  );
+
   const fetchCtx = useCallback(async () => {
-    const url = token
-      ? `/api/repartidor/${envioId}?token=${encodeURIComponent(token)}`
-      : `/api/repartidor/${envioId}`;
+    const url = apiUrl("");
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
@@ -265,7 +271,7 @@ export default function RepartidorView() {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, [envioId, token]);
+  }, [apiUrl]);
 
   const loadContext = useCallback(() => {
     setLoading(true);
@@ -286,11 +292,11 @@ export default function RepartidorView() {
   const sendUbicacion = useCallback(
     async (lat: number, lng: number) => {
       try {
-        const res = await fetch(`/api/repartidor/${envioId}/ubicacion`, {
+        const res = await fetch(apiUrl("/ubicacion"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ ...authBody(), lat, lng }),
+          body: JSON.stringify({ lat, lng, ...authBody() }),
         });
         if (!res.ok) throw new Error("upload failed");
         clearPendingPosition(envioId);
@@ -299,7 +305,7 @@ export default function RepartidorView() {
         console.warn("[REPARTIDOR] No se pudo enviar ubicación, guardada localmente");
       }
     },
-    [authBody, envioId],
+    [apiUrl, authBody, envioId],
   );
 
   const applyPosition = useCallback(
@@ -319,7 +325,10 @@ export default function RepartidorView() {
       lastPosRef.current = next;
       lastPosTimeRef.current = now;
       setCurrentPosition(next);
-      if (ctxRef.current) void sendUbicacion(next.lat, next.lng);
+      const estadoEnvio = ctxRef.current?.envio.estado;
+      if (estadoEnvio === "en_camino" || estadoEnvio === "llegando") {
+        void sendUbicacion(next.lat, next.lng);
+      }
     },
     [sendUbicacion],
   );
@@ -492,7 +501,7 @@ export default function RepartidorView() {
   async function patchEstado(estadoNuevo: EstadoEnvio) {
     setBusy(true);
     const coords = lastPosRef.current;
-    const res = await fetch(`/api/repartidor/${envioId}/estado`, {
+    const res = await fetch(apiUrl("/estado"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
