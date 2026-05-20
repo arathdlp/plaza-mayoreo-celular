@@ -1,4 +1,4 @@
-import type { LatLng } from "@/lib/google-maps";
+import type { LatLng } from "@/lib/coords";
 
 export type RouteStepInfo = {
   instruction: string;

@@ -6,7 +6,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { ETIQUETAS_ESTADO_ENVIO } from "@/lib/envio-labels";
 import { formatoPesos } from "@/lib/format";
-import { parseCoord, resolveDestino, type LatLng } from "@/lib/google-maps";
+import { parseCoord, resolveDestino, type LatLng } from "@/lib/coords";
 import { distanceMeters, maneuverLabel, type NavigationStats } from "@/lib/tracking-navigation";
 import type { RepartidorContext } from "@/types/repartidor";
 import type { EstadoEnvio } from "@/types/envio";
@@ -30,7 +30,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
 
@@ -126,6 +126,69 @@ function DirectionIcon({ maneuver }: { maneuver?: string }) {
   return <ArrowUp className="h-6 w-6" />;
 }
 
+function LoadingScreen({
+  timedOut,
+  onRetry,
+}: {
+  timedOut: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
+      <div className="mb-5 h-16 w-16 animate-pulse rounded-full bg-white/10" />
+      <p className="text-lg font-medium">
+        {timedOut ? "Tardamos más de lo esperado" : "Cargando envío..."}
+      </p>
+      <p className="mt-2 max-w-sm text-sm text-white/60">
+        {timedOut
+          ? "Revisa tu conexión e intenta cargar el envío nuevamente."
+          : "Estamos preparando los datos de la entrega."}
+      </p>
+      {timedOut ? (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+          >
+            Reintentar
+          </button>
+          <a
+            href="/"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+          >
+            Volver al inicio
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FatalScreen({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
+      <p className="text-xl font-bold text-red-400">{title}</p>
+      <p className="mt-3 max-w-md text-sm text-white/70">{message}</p>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+        >
+          Reintentar
+        </button>
+        <a
+          href="/"
+          className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+        >
+          Volver al inicio
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function RepartidorView() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -136,6 +199,7 @@ export default function RepartidorView() {
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [gpsPermission, setGpsPermission] = useState<GpsPermission>("pending");
   const [busy, setBusy] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
@@ -160,22 +224,64 @@ export default function RepartidorView() {
     const url = token
       ? `/api/repartidor/${envioId}?token=${encodeURIComponent(token)}`
       : `/api/repartidor/${envioId}`;
-    const res = await fetch(url, { credentials: "include" });
-    const json = await res.json();
-    if (!res.ok) {
-      setError(json.error ?? "No se pudo cargar el envío.");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const res = await fetch(url, { credentials: "include", signal: controller.signal });
+      let json: { error?: string } & Partial<RepartidorContext>;
+      try {
+        json = (await res.json()) as { error?: string } & Partial<RepartidorContext>;
+      } catch {
+        setError("Respuesta inválida del servidor.");
+        setCtx(null);
+        return;
+      }
+
+      if (!res.ok) {
+        setError(json.error ?? "No se pudo cargar el envío.");
+        setCtx(null);
+        return;
+      }
+
+      if (!json.envio || !json.cliente || !json.pedido) {
+        setError("Faltan datos del envío o del cliente.");
+        setCtx(null);
+        return;
+      }
+
+      const data = json as RepartidorContext;
+      setCtx(data);
+      ctxRef.current = data;
+      setError(null);
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === "AbortError"
+          ? "La solicitud tardó demasiado. Reintenta."
+          : "No se pudo cargar el envío.";
+      console.error("[REPARTIDOR] Error cargando contexto:", err);
+      setError(message);
       setCtx(null);
-      return;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    const data = json as RepartidorContext;
-    setCtx(data);
-    ctxRef.current = data;
-    setError(null);
   }, [envioId, token]);
 
-  useEffect(() => {
+  const loadContext = useCallback(() => {
+    setLoading(true);
+    setLoadingTimedOut(false);
     void fetchCtx().finally(() => setLoading(false));
   }, [fetchCtx]);
+
+  useEffect(() => {
+    loadContext();
+  }, [loadContext]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = setTimeout(() => setLoadingTimedOut(true), 10_000);
+    return () => clearTimeout(id);
+  }, [loading]);
 
   const sendUbicacion = useCallback(
     async (lat: number, lng: number) => {
@@ -275,6 +381,7 @@ export default function RepartidorView() {
   }, [requestCurrentPosition]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem("pmc_repartidor_voice");
     setVoiceEnabled(stored === "1");
   }, []);
@@ -297,7 +404,7 @@ export default function RepartidorView() {
   }, []);
 
   const requestWakeLock = useCallback(async () => {
-    if (!("wakeLock" in navigator)) return;
+    if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
     try {
       wakeLockRef.current = await navigator.wakeLock.request("screen");
     } catch {
@@ -306,6 +413,7 @@ export default function RepartidorView() {
   }, []);
 
   const stopTracking = useCallback(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
     if (watchIdRef.current != null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -317,10 +425,19 @@ export default function RepartidorView() {
   }, []);
 
   const envio = ctx?.envio;
+  const cliente = ctx?.cliente;
+  const apiKeyAvailable = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
 
   useEffect(() => {
     if (ctx) ctxRef.current = ctx;
   }, [ctx]);
+
+  useEffect(() => {
+    console.log("[REPARTIDOR] Componente montado");
+    console.log("[REPARTIDOR] Envío:", envio);
+    console.log("[REPARTIDOR] Token:", token);
+    console.log("[REPARTIDOR] API Key disponible:", apiKeyAvailable);
+  }, [envio, token, apiKeyAvailable]);
 
   useEffect(() => {
     const flushPending = () => {
@@ -363,14 +480,6 @@ export default function RepartidorView() {
       void releaseWakeLock();
     };
   }, [releaseWakeLock, stopTracking]);
-
-  const waCliente = useMemo(() => {
-    if (!ctx?.cliente.telefono) return null;
-    return urlWhatsApp(
-      ctx.cliente.telefono,
-      mensajeWhatsAppEnCamino(ctx.cliente.nombre, ctx.pedido.id),
-    );
-  }, [ctx]);
 
   async function patchEstado(estadoNuevo: EstadoEnvio) {
     setBusy(true);
@@ -434,24 +543,35 @@ export default function RepartidorView() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0f] text-white">
-        <p className="text-lg">Cargando envío…</p>
-      </div>
-    );
+    return <LoadingScreen timedOut={loadingTimedOut} onRetry={loadContext} />;
   }
 
   if (error && !ctx) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
         <p className="text-xl font-bold text-red-400">
-          {error.includes("acceso") ? "Sin acceso" : "Enlace no válido"}
+          {error.includes("acceso") ? "Sin acceso" : "No pudimos cargar el envío"}
         </p>
         <p className="mt-3 text-sm text-white/70">{error}</p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={loadContext}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+          >
+            Reintentar
+          </button>
+          <a
+            href="/"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white"
+          >
+            Volver al inicio
+          </a>
+        </div>
         {!token ? (
           <a
             href="/repartidor/login"
-            className="mt-6 rounded-2xl bg-[#0066FF] px-6 py-3 text-sm font-bold"
+            className="mt-4 text-sm font-semibold text-[#93C5FD] hover:underline"
           >
             Iniciar sesión
           </a>
@@ -464,13 +584,23 @@ export default function RepartidorView() {
     return <GpsBlockedScreen message={geoError} onRetry={requestCurrentPosition} />;
   }
 
-  if (!ctx || !envio) return null;
+  if (!ctx || !envio || !cliente) {
+    return (
+      <FatalScreen
+        title="No pudimos cargar el envío"
+        message="Faltan datos del envío o del cliente. Reintenta en unos segundos."
+      />
+    );
+  }
 
   const estado = envio.estado;
   const entregado = estado === "entregado";
   const trackingActivo = estado === "en_camino" || estado === "llegando";
   const showWakeBanner = gpsPermission === "granted";
   const destino = resolveDestino(envio);
+  const hasDestinoCoords = parseCoord(envio.destino_lat) != null && parseCoord(envio.destino_lng) != null;
+  const hasDireccionDestino = Boolean(ctx.pedido.direccion_entrega?.trim());
+  const canResolveDestino = hasDestinoCoords || hasDireccionDestino;
   const activePosition = currentPosition ?? lastPosRef.current;
   const navigationPosition =
     gpsPermission === "granted" && activePosition
@@ -486,10 +616,12 @@ export default function RepartidorView() {
         : entregado
           ? "Entrega completada"
           : "Actualizar entrega";
-  const waEntregado = urlWhatsApp(
-    ctx.cliente.telefono,
-    mensajeWhatsAppEntregado(ctx.pedido.id),
-  );
+  const waEntregado = cliente.telefono
+    ? urlWhatsApp(cliente.telefono, mensajeWhatsAppEntregado(ctx.pedido.id))
+    : null;
+  const waCliente = cliente.telefono
+    ? urlWhatsApp(cliente.telefono, mensajeWhatsAppEnCamino(cliente.nombre, ctx.pedido.id))
+    : null;
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 pb-28 text-[#111827]">
@@ -502,13 +634,13 @@ export default function RepartidorView() {
       <header className={`sticky z-40 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur ${showWakeBanner ? "top-9" : "top-0"}`}>
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{ctx.cliente.nombre}</p>
+            <p className="truncate font-medium">{cliente.nombre}</p>
             <p className="truncate text-xs text-gray-500">{ctx.pedido.direccion_entrega}</p>
           </div>
           <div className="flex shrink-0 gap-2">
-            {ctx.cliente.telefono ? (
+            {cliente.telefono ? (
               <a
-                href={`tel:${ctx.cliente.telefono.replace(/\s/g, "")}`}
+                href={`tel:${cliente.telefono.replace(/\s/g, "")}`}
                 aria-label="Llamar al cliente"
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700"
               >
@@ -540,7 +672,13 @@ export default function RepartidorView() {
 
       <main className="mx-auto max-w-2xl">
         <section className="h-[60vh] min-h-[420px] overflow-hidden border-b border-gray-200 bg-gray-100">
-          {navigationPosition ? (
+          {!apiKeyAvailable ? (
+            <div className="flex h-full items-center justify-center px-6 text-center">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                Falta configurar NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en Vercel.
+              </div>
+            </div>
+          ) : navigationPosition && canResolveDestino ? (
             <NavigationMap
               current={navigationPosition}
               destination={destino}
@@ -552,6 +690,10 @@ export default function RepartidorView() {
               onStats={setStats}
               className="h-full"
             />
+          ) : !canResolveDestino ? (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
+              No hay coordenadas ni dirección de entrega para calcular la ruta.
+            </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center bg-gray-100 px-6 text-center">
               <div className="mb-4 h-28 w-28 animate-pulse rounded-full bg-white shadow-sm" />

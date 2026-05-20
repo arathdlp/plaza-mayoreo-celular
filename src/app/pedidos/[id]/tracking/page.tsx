@@ -1,4 +1,4 @@
-import TrackingPremiumView from "@/components/tracking/TrackingPremiumView";
+import TrackingClient from "./TrackingClient";
 import { loadPedidoTracking, pedidoTrackingHref } from "@/lib/pedido-tracking";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -99,7 +99,7 @@ export default async function PedidoTrackingPage({ params, searchParams }: Props
   const guest = !user;
 
   return (
-    <TrackingPremiumView
+    <TrackingClient
       pedidoId={pedidoId}
       initialEnvio={data.envio}
       clienteNombre={data.clienteNombre}

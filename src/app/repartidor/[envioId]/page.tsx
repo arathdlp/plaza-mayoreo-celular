@@ -1,7 +1,7 @@
 import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import RepartidorView from "./RepartidorView";
+import RepartidorClient from "./RepartidorClient";
 
 export const metadata: Metadata = pageMetadata({
   title: "App repartidor",
@@ -19,7 +19,7 @@ export default function RepartidorPage() {
         </div>
       }
     >
-      <RepartidorView />
+      <RepartidorClient />
     </Suspense>
   );
 }

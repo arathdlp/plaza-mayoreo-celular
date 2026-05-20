@@ -2,7 +2,6 @@
 
 import ProductoImagen from "@/components/ProductoImagen";
 import CelularConstruccion, { mapCelularVisualEstado } from "@/components/tracking/CelularConstruccion";
-import NavigationMap from "@/components/tracking/NavigationMap";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { Particles } from "@/components/ui/particles";
@@ -10,7 +9,7 @@ import { mensajeClienteARepartidor, urlWhatsApp } from "@/lib/contact-links";
 import { ETIQUETAS_ESTADO_ENVIO } from "@/lib/envio-labels";
 import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { formatoPesos } from "@/lib/format";
-import { parseCoord, resolveDestino, type LatLng } from "@/lib/google-maps";
+import { coordsFromPosition, parseCoord, resolveDestino, type LatLng } from "@/lib/coords";
 import { badgeEstadoPagoPedido, badgeMetodoPago } from "@/lib/pedido-pago";
 import { maneuverLabel, type NavigationStats } from "@/lib/tracking-navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +29,7 @@ import {
   Phone,
   Star,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,9 +41,18 @@ type TrackingItem = {
   imagen_url: string | null;
 };
 
+const NavigationMap = dynamic(() => import("@/components/tracking/NavigationMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full animate-pulse items-center justify-center bg-gray-100 px-6 text-center text-sm font-medium text-gray-500">
+      Obteniendo tu ubicación...
+    </div>
+  ),
+});
+
 type Props = {
   pedidoId: number;
-  initialEnvio: EnvioRow;
+  initialEnvio: EnvioRow | null;
   clienteNombre?: string;
   clienteTelefono?: string;
   total: number;
@@ -55,11 +64,9 @@ type Props = {
   backHref?: string;
 };
 
-function coordsFromEnvio(envio: EnvioRow): LatLng | null {
-  const lat = parseCoord(envio.lat_actual);
-  const lng = parseCoord(envio.lng_actual);
-  if (lat == null || lng == null) return null;
-  return { lat, lng };
+function repartidorPosition(envio: EnvioRow | null): LatLng | null {
+  if (!envio) return null;
+  return coordsFromPosition(envio.lat_actual, envio.lng_actual);
 }
 
 function estadoTexto(estado: EstadoEnvio): string {
@@ -88,45 +95,58 @@ export default function TrackingPremiumView({
   backHref = "/pedidos",
 }: Props) {
   const reduceMotion = useReducedMotion();
-  const [envio, setEnvio] = useState(initialEnvio);
+  const [envio, setEnvio] = useState<EnvioRow | null>(initialEnvio);
   const [stats, setStats] = useState<NavigationStats | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [segundosDesdeUpdate, setSegundosDesdeUpdate] = useState(0);
   const envioPrevRef = useRef(initialEnvio);
   const guestMode = Boolean(accessToken);
+  const apiKeyAvailable = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
 
-  const destino = useMemo(() => resolveDestino(envio), [envio]);
-  const repartidor = useMemo(() => coordsFromEnvio(envio), [envio]);
-  const estado = envio.estado as EstadoEnvio;
+  const destino = useMemo(() => (envio ? resolveDestino(envio) : null), [envio]);
+  const repartidor = useMemo(() => repartidorPosition(envio), [envio]);
+  const hasDestinoCoords =
+    parseCoord(envio?.destino_lat) != null && parseCoord(envio?.destino_lng) != null;
+  const canShowMap = apiKeyAvailable && Boolean(destino) && (hasDestinoCoords || Boolean(direccionEntrega?.trim()));
+  const estado = (envio?.estado ?? "pendiente") as EstadoEnvio;
   const visualCelular = mapCelularVisualEstado(pedidoEstado, estado);
   const metodoBadge = badgeMetodoPago(metodoPago);
   const estadoPagoBadge = badgeEstadoPagoPedido(estado === "entregado" ? "pagado" : null);
 
-  const telRepartidor = envio.repartidor_telefono
+  const telRepartidor = envio?.repartidor_telefono
     ? `tel:${envio.repartidor_telefono.replace(/\s/g, "")}`
     : null;
 
   const waRepartidor = useMemo(() => {
-    if (!envio.repartidor_telefono) return null;
+    if (!envio?.repartidor_telefono) return null;
     return urlWhatsApp(
       envio.repartidor_telefono,
       mensajeClienteARepartidor(clienteNombre ?? "cliente", pedidoId),
     );
-  }, [envio.repartidor_telefono, clienteNombre, pedidoId]);
+  }, [envio?.repartidor_telefono, clienteNombre, pedidoId]);
 
   const onStats = useCallback((next: NavigationStats | null) => setStats(next), []);
 
   useEffect(() => {
+    console.log("[TRACKING] Componente montado");
+    console.log("[TRACKING] Envío:", envio);
+    console.log("[TRACKING] API Key disponible:", apiKeyAvailable);
     void solicitarPermisoNotificaciones();
-  }, []);
+  }, [envio, apiKeyAvailable]);
 
   useEffect(() => {
+    if (!envio) return;
     console.log("[TRACKING] Estado envío:", envio.estado, "pedido:", pedidoEstado);
+    if (!envioPrevRef.current) {
+      envioPrevRef.current = envio;
+      return;
+    }
     notificarCambioEnvio(envioPrevRef.current, envio, pedidoId);
     envioPrevRef.current = envio;
   }, [envio, pedidoEstado, pedidoId]);
 
   useEffect(() => {
+    if (!envio?.updated_at) return;
     const tick = () => {
       const t = new Date(envio.updated_at).getTime();
       setSegundosDesdeUpdate(Math.max(0, Math.floor((Date.now() - t) / 1000)));
@@ -134,9 +154,10 @@ export default function TrackingPremiumView({
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [envio.updated_at]);
+  }, [envio?.updated_at]);
 
   useEffect(() => {
+    if (!envio?.id) return;
     if (guestMode && accessToken) {
       const poll = async () => {
         try {
@@ -148,7 +169,7 @@ export default function TrackingPremiumView({
           if (json.envio) {
             setEnvio((prev) => ({
               ...json.envio!,
-              direccion_destino: prev.direccion_destino,
+              direccion_destino: prev?.direccion_destino ?? json.envio!.direccion_destino,
             }));
           }
         } catch {
@@ -175,7 +196,7 @@ export default function TrackingPremiumView({
           const row = mapEnvioFromDb(payload.new as EnvioDbRow);
           setEnvio((prev) => ({
             ...row,
-            direccion_destino: prev.direccion_destino,
+            direccion_destino: prev?.direccion_destino ?? row.direccion_destino,
           }));
         },
       )
@@ -186,10 +207,24 @@ export default function TrackingPremiumView({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [envio.id, guestMode, accessToken, pedidoId]);
+  }, [envio?.id, guestMode, accessToken, pedidoId]);
 
   const step = stats?.currentStep;
-  const etaMinutes = stats ? Math.max(1, Math.round(stats.durationValue / 60)) : envio.tiempo_estimado_minutos;
+  const etaMinutes = stats ? Math.max(1, Math.round(stats.durationValue / 60)) : envio?.tiempo_estimado_minutos;
+
+  if (!envio) {
+    return (
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-xl font-semibold text-[#111827]">No pudimos cargar el rastreo</h1>
+        <p className="mt-2 max-w-md text-sm text-gray-600">
+          Faltan datos del envío. Reintenta en unos segundos o vuelve al inicio.
+        </p>
+        <Link href={backHref} className="mt-6 rounded-full bg-[#0066FF] px-6 py-3 text-sm font-semibold text-white">
+          Volver
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-white text-[#111827]">
@@ -224,6 +259,11 @@ export default function TrackingPremiumView({
         </section>
 
         <section className="relative h-[50vh] min-h-[360px] overflow-hidden border-y border-gray-200 bg-gray-100">
+          {!apiKeyAvailable ? (
+            <div className="absolute inset-x-4 top-4 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900 shadow-sm">
+              Falta configurar NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en Vercel.
+            </div>
+          ) : null}
           <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-sm">
             <span
               className={`h-2 w-2 rounded-full ${
@@ -241,20 +281,42 @@ export default function TrackingPremiumView({
                 ? "Reconectando..."
                 : "Sin señal"}
           </div>
-          {repartidor ? (
+          {canShowMap && repartidor ? (
             <NavigationMap
               current={repartidor}
-              destination={destino}
+              destination={destino!}
               destinationAddress={direccionEntrega}
               marker="bike"
               onStats={onStats}
               className="h-full"
             />
+          ) : canShowMap ? (
+            <NavigationMap
+              current={null}
+              destination={destino!}
+              destinationAddress={direccionEntrega}
+              marker="bike"
+              onStats={onStats}
+              className="h-full"
+            />
+          ) : !apiKeyAvailable ? (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
+              El mapa estará disponible cuando se configure la API key de Google Maps.
+            </div>
+          ) : !hasDestinoCoords && !direccionEntrega?.trim() ? (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
+              No hay dirección de entrega para mostrar el mapa.
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
               El repartidor aparecerá en el mapa cuando inicie la entrega.
             </div>
           )}
+          {stats?.routeError ? (
+            <div className="absolute inset-x-4 bottom-4 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 shadow-sm">
+              {stats.routeError}
+            </div>
+          ) : null}
         </section>
 
         {envio.repartidor_nombre ? (

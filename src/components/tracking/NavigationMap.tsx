@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LOG_PREFIX = "[REPARTIDOR]";
+const MAP_ERROR_PREFIX = "[MAP ERROR]";
 
 type Props = {
   current: LatLng | null;
@@ -107,6 +108,7 @@ export default function NavigationMap({
   const pulseIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [resolvedDest, setResolvedDest] = useState<LatLng | null>(null);
   const [resolvingDest, setResolvingDest] = useState(false);
 
@@ -130,8 +132,10 @@ export default function NavigationMap({
     async function init() {
       if (!containerRef.current) return;
       try {
+        setMapError(null);
         if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim()) {
-          console.error(`${LOG_PREFIX} Falta NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`);
+          console.error(`${MAP_ERROR_PREFIX} Falta NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`);
+          setMapError("Falta configurar NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en Vercel.");
           onStats?.({
             distanceText: "—",
             durationText: "—",
@@ -174,7 +178,8 @@ export default function NavigationMap({
         console.log(`${LOG_PREFIX} Mapa cargado`);
         setMapReady(true);
       } catch (err) {
-        console.error(`${LOG_PREFIX} Error al cargar mapa`, err);
+        console.error(`${MAP_ERROR_PREFIX} Error al cargar mapa`, err);
+        setMapError("No se pudo cargar Google Maps.");
         onStats?.({
           distanceText: "—",
           durationText: "—",
@@ -201,32 +206,46 @@ export default function NavigationMap({
     let cancelled = false;
 
     async function resolveDestination() {
-      setResolvingDest(true);
-      let dest = destination;
+      try {
+        setResolvingDest(true);
+        let dest = destination;
 
-      if (isFallbackCenter(dest) && destinationAddress.trim()) {
-        console.log(`${LOG_PREFIX} Geocodificando destino:`, destinationAddress);
-        const geo = await geocodeAddress(destinationAddress);
-        if (geo) dest = geo;
-        else {
-          console.warn(`${LOG_PREFIX} Geocoding falló para destino`);
-          onStats?.({
-            distanceText: "—",
-            durationText: "—",
-            distanceValue: 0,
-            durationValue: 0,
-            speedKmh,
-            routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
-          });
-          setResolvingDest(false);
-          return;
+        if (isFallbackCenter(dest) && destinationAddress.trim()) {
+          console.log(`${LOG_PREFIX} Geocodificando destino:`, destinationAddress);
+          const geo = await geocodeAddress(destinationAddress);
+          if (geo) dest = geo;
+          else {
+            console.warn(`${MAP_ERROR_PREFIX} Geocoding falló para destino`);
+            onStats?.({
+              distanceText: "—",
+              durationText: "—",
+              distanceValue: 0,
+              durationValue: 0,
+              speedKmh,
+              routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
+            });
+            setResolvingDest(false);
+            return;
+          }
         }
-      }
 
-      if (!cancelled) {
-        setResolvedDest(dest);
+        if (!cancelled) {
+          setResolvedDest(dest);
+          setResolvingDest(false);
+          console.log(`${LOG_PREFIX} Destino resuelto`, dest);
+        }
+      } catch (err) {
+        console.error(`${MAP_ERROR_PREFIX} Error resolviendo destino`, err);
+        setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+        onStats?.({
+          distanceText: "—",
+          durationText: "—",
+          distanceValue: 0,
+          durationValue: 0,
+          speedKmh,
+          routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
+        });
         setResolvingDest(false);
-        console.log(`${LOG_PREFIX} Destino resuelto`, dest);
       }
     }
 
@@ -240,18 +259,23 @@ export default function NavigationMap({
     const map = mapRef.current;
     if (!map || !resolvedDest) return;
 
-    destinationMarkerRef.current?.setMap(null);
-    destinationMarkerRef.current = new google.maps.Marker({
-      map,
-      position: resolvedDest,
-      title: "Destino",
-      zIndex: 2,
-      icon: {
-        url: destinoMarkerIcon(),
-        scaledSize: new google.maps.Size(48, 58),
-        anchor: new google.maps.Point(24, 56),
-      },
-    });
+    try {
+      destinationMarkerRef.current?.setMap(null);
+      destinationMarkerRef.current = new google.maps.Marker({
+        map,
+        position: resolvedDest,
+        title: "Destino",
+        zIndex: 2,
+        icon: {
+          url: destinoMarkerIcon(),
+          scaledSize: new google.maps.Size(48, 58),
+          anchor: new google.maps.Point(24, 56),
+        },
+      });
+    } catch (err) {
+      console.error(`${MAP_ERROR_PREFIX} Error creando marcador destino`, err);
+      setMapError("No se pudo mostrar el destino en el mapa.");
+    }
   }, [mapReady, resolvedDest]);
 
   const updateMarkerPosition = useCallback(
@@ -259,43 +283,48 @@ export default function NavigationMap({
       const map = mapRef.current;
       if (!map) return;
 
-      if (!currentMarkerRef.current) {
-        currentMarkerRef.current = new google.maps.Marker({
-          map,
-          position: pos,
-          title: "Repartidor",
-          zIndex: 3,
-          icon: {
+      try {
+        if (!currentMarkerRef.current) {
+          currentMarkerRef.current = new google.maps.Marker({
+            map,
+            position: pos,
+            title: "Repartidor",
+            zIndex: 3,
+            icon: {
+              url: iconFactory(rotation),
+              scaledSize: new google.maps.Size(48, 48),
+              anchor: new google.maps.Point(24, 24),
+            },
+          });
+          pulseMarkerRefs.current = [0, 1, 2].map(
+            (i) =>
+              new google.maps.Marker({
+                map,
+                position: pos,
+                zIndex: 1,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 14 + i * 6,
+                  fillColor: "#0066FF",
+                  fillOpacity: 0.06,
+                  strokeColor: "#0066FF",
+                  strokeOpacity: 0.12,
+                  strokeWeight: 2,
+                },
+              }),
+          );
+        } else {
+          currentMarkerRef.current.setPosition(pos);
+          currentMarkerRef.current.setIcon({
             url: iconFactory(rotation),
             scaledSize: new google.maps.Size(48, 48),
             anchor: new google.maps.Point(24, 24),
-          },
-        });
-        pulseMarkerRefs.current = [0, 1, 2].map(
-          (i) =>
-            new google.maps.Marker({
-              map,
-              position: pos,
-              zIndex: 1,
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 14 + i * 6,
-                fillColor: "#0066FF",
-                fillOpacity: 0.06,
-                strokeColor: "#0066FF",
-                strokeOpacity: 0.12,
-                strokeWeight: 2,
-              },
-            }),
-        );
-      } else {
-        currentMarkerRef.current.setPosition(pos);
-        currentMarkerRef.current.setIcon({
-          url: iconFactory(rotation),
-          scaledSize: new google.maps.Size(48, 48),
-          anchor: new google.maps.Point(24, 24),
-        });
-        pulseMarkerRefs.current.forEach((m) => m.setPosition(pos));
+          });
+          pulseMarkerRefs.current.forEach((m) => m.setPosition(pos));
+        }
+      } catch (err) {
+        console.error(`${MAP_ERROR_PREFIX} Error actualizando marcador`, err);
+        setMapError("No se pudo actualizar el marcador en el mapa.");
       }
     },
     [iconFactory],
@@ -380,49 +409,78 @@ export default function NavigationMap({
     lastRouteOriginRef.current = origin;
     console.log(`${LOG_PREFIX} DirectionsService.route`, { origin, dest });
 
-    directionsServiceRef.current?.route(
-      {
-        origin,
-        destination: dest,
-        travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: false,
-      },
-      (result, status) => {
-        if (status !== google.maps.DirectionsStatus.OK || !result) {
-          const msg = directionsErrorMessage(status);
-          console.warn(`${LOG_PREFIX} DirectionsService status:`, status);
-          onStats?.({
-            distanceText: "—",
-            durationText: "—",
-            distanceValue: 0,
-            durationValue: 0,
-            speedKmh,
-            routeError: msg,
-          });
-          return;
-        }
+    try {
+      if (!directionsServiceRef.current) {
+        throw new Error("DirectionsService no está listo");
+      }
+      directionsServiceRef.current.route(
+        {
+          origin,
+          destination: dest,
+          travelMode: google.maps.TravelMode.DRIVING,
+          provideRouteAlternatives: false,
+        },
+        (result, status) => {
+          try {
+            if (status !== google.maps.DirectionsStatus.OK || !result) {
+              const msg = directionsErrorMessage(status);
+              console.warn(`${MAP_ERROR_PREFIX} DirectionsService status:`, status);
+              onStats?.({
+                distanceText: "—",
+                durationText: "—",
+                distanceValue: 0,
+                durationValue: 0,
+                speedKmh,
+                routeError: msg,
+              });
+              return;
+            }
 
-        directionsRendererRef.current?.setDirections(result);
-        routePathRef.current = result.routes[0]?.overview_path ?? [];
-        routeStepsRef.current = result.routes[0]?.legs[0]?.steps ?? [];
-        stepIndexRef.current = 0;
-        announcedStepRef.current = -1;
+            directionsRendererRef.current?.setDirections(result);
+            routePathRef.current = result.routes[0]?.overview_path ?? [];
+            routeStepsRef.current = result.routes[0]?.legs[0]?.steps ?? [];
+            stepIndexRef.current = 0;
+            announcedStepRef.current = -1;
 
-        const steps = stepsFromDirectionsLeg(result.routes[0]?.legs[0]);
-        parsedStepsRef.current = steps;
-        const stats = routeStatsFromResult(result, speedKmh, 0, steps);
-        lastStatsRef.current = stats;
-        onStats?.(stats);
-        console.log(`${LOG_PREFIX} Ruta calculada, pasos:`, steps.length);
+            const steps = stepsFromDirectionsLeg(result.routes[0]?.legs[0]);
+            parsedStepsRef.current = steps;
+            const stats = routeStatsFromResult(result, speedKmh, 0, steps);
+            lastStatsRef.current = stats;
+            onStats?.(stats);
+            console.log(`${LOG_PREFIX} Ruta calculada, pasos:`, steps.length);
 
-        if (!followCurrent) {
-          const bounds = new google.maps.LatLngBounds();
-          bounds.extend(origin);
-          bounds.extend(dest);
-          map.fitBounds(bounds, 64);
-        }
-      },
-    );
+            if (!followCurrent) {
+              const bounds = new google.maps.LatLngBounds();
+              bounds.extend(origin);
+              bounds.extend(dest);
+              map.fitBounds(bounds, 64);
+            }
+          } catch (err) {
+            console.error(`${MAP_ERROR_PREFIX} Error procesando ruta`, err);
+            setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+            onStats?.({
+              distanceText: "—",
+              durationText: "—",
+              distanceValue: 0,
+              durationValue: 0,
+              speedKmh,
+              routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
+            });
+          }
+        },
+      );
+    } catch (err) {
+      console.error(`${MAP_ERROR_PREFIX} Error llamando DirectionsService`, err);
+      setMapError("No se pudo calcular la ruta. Verificar dirección del cliente.");
+      onStats?.({
+        distanceText: "—",
+        durationText: "—",
+        distanceValue: 0,
+        durationValue: 0,
+        speedKmh,
+        routeError: "No se pudo calcular la ruta. Verificar dirección del cliente.",
+      });
+    }
   }, [current, followCurrent, onStats, resolvedDest, resolvingDest, speedKmh]);
 
   useEffect(() => {
@@ -467,7 +525,13 @@ export default function NavigationMap({
   return (
     <div className={`relative h-full w-full bg-slate-100 ${className}`} aria-label="Mapa de navegación">
       <div ref={containerRef} className="h-full w-full" />
-      {!mapReady ? (
+      {mapError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 px-6 text-center">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {mapError}
+          </div>
+        </div>
+      ) : !mapReady ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 px-6 text-center">
           <div className="mb-4 h-28 w-28 animate-pulse rounded-full bg-white shadow-sm" />
           <p className="text-sm font-medium text-slate-600">Obteniendo tu ubicación...</p>
