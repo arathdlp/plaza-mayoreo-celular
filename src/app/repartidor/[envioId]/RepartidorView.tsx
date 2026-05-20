@@ -218,6 +218,7 @@ export default function RepartidorView() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [confirmEntregaOpen, setConfirmEntregaOpen] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -590,6 +591,11 @@ export default function RepartidorView() {
     });
   }
 
+  async function confirmarEntrega() {
+    setConfirmEntregaOpen(false);
+    await patchEstado("entregado");
+  }
+
   if (loading) {
     return <LoadingScreen timedOut={loadingTimedOut} onRetry={loadContext} />;
   }
@@ -657,6 +663,9 @@ export default function RepartidorView() {
       ? { lat: activePosition.lat, lng: activePosition.lng }
       : null;
   const step = stats?.currentStep;
+  const distanciaEntregaMeters =
+    activePosition && canResolveDestino ? distanceMeters(activePosition, destino) : null;
+  const entregaLejana = distanciaEntregaMeters != null && distanciaEntregaMeters > 500;
   const routeHint = stats?.routeError ?? geoError ?? (gpsPermission === "pending" ? "Obteniendo tu ubicación..." : null);
   const actionLabel =
     estado === "pendiente"
@@ -887,6 +896,40 @@ export default function RepartidorView() {
         </section>
       </main>
 
+      {confirmEntregaOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-4 sm:items-center sm:pb-0">
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl"
+          >
+            <h2 className="text-lg font-semibold text-[#111827]">¿Confirmar entrega?</h2>
+            <p className="mt-2 text-sm text-gray-600">Esta acción no se puede deshacer.</p>
+            {entregaLejana ? (
+              <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Pareces estar lejos del destino. ¿Confirmas que entregaste el pedido?
+              </p>
+            ) : null}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmEntregaOpen(false)}
+                className="h-12 rounded-2xl border border-gray-200 font-medium text-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmarEntrega()}
+                className="h-12 rounded-2xl bg-emerald-500 font-medium text-white"
+              >
+                Confirmar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
+
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 p-4 backdrop-blur">
         <div className="mx-auto max-w-2xl">
           {entregado ? (
@@ -905,7 +948,7 @@ export default function RepartidorView() {
               onClick={() =>
                 estado === "pendiente"
                   ? void iniciarEntrega()
-                  : void patchEstado("entregado")
+                  : setConfirmEntregaOpen(true)
               }
               className={`h-16 w-full ${estado === "pendiente" ? "bg-[#0066FF]" : "bg-emerald-500"}`}
             >

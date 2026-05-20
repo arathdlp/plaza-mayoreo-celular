@@ -620,27 +620,35 @@ export default function NavigationMap({
     }
   }, [current, followCurrent, speedKmh]);
 
-  useEffect(() => {
-    if (mapReady && current && destReady && destinationRef.current) {
-      void requestRoute();
-    }
-  }, [mapReady, current, destReady, requestRoute]);
-
-  useEffect(() => {
-    if (!current || parsedStepsRef.current.length === 0) return;
-
+  const actualizarPasoActual = useCallback(
+    (posActual: LatLng) => {
+    if (parsedStepsRef.current.length === 0) return;
     const parsed = parsedStepsRef.current;
-    let idx = stepIndexRef.current;
-    const step = parsed[idx];
-    if (step?.endLocation && distanceMeters(current, step.endLocation) < 30 && idx < parsed.length - 1) {
-      idx += 1;
-      stepIndexRef.current = idx;
-      console.log(`${LOG_PREFIX} Avanzando al paso`, idx + 1);
+    let pasoMasCercano = stepIndexRef.current;
+    let distanciaMinima = Infinity;
+
+    parsed.forEach((paso, index) => {
+      if (!paso.endLocation) return;
+      const dist = distanceMeters(posActual, paso.endLocation);
+      if (dist < distanciaMinima) {
+        distanciaMinima = dist;
+        pasoMasCercano = index;
+      }
+    });
+
+    const nextIndex =
+      distanciaMinima < 30 && pasoMasCercano < parsed.length - 1
+        ? pasoMasCercano + 1
+        : pasoMasCercano;
+
+    if (stepIndexRef.current !== nextIndex) {
+      stepIndexRef.current = nextIndex;
+      console.log(`${LOG_PREFIX} Paso actual`, nextIndex + 1);
     }
 
-    const currentStep = parsed[idx];
-    if (currentStep && announcedStepRef.current !== idx) {
-      announcedStepRef.current = idx;
+    const currentStep = parsed[nextIndex];
+    if (currentStep && announcedStepRef.current !== nextIndex && distanciaMinima < 200) {
+      announcedStepRef.current = nextIndex;
       speak(currentStep.instruction);
     }
 
@@ -648,14 +656,26 @@ export default function NavigationMap({
       const next = {
         ...lastStatsRef.current,
         currentStep,
-        stepIndex: idx,
+        stepIndex: nextIndex,
         stepCount: parsed.length,
         speedKmh,
       };
       lastStatsRef.current = next;
       onStatsRef.current?.(next);
     }
-  }, [current, speak, speedKmh]);
+    },
+    [speak, speedKmh],
+  );
+
+  useEffect(() => {
+    if (!mapReady || !current || !destReady || !destinationRef.current) return;
+    actualizarPasoActual(current);
+    if (routePathRef.current.length && nearestPathDistanceMeters(current, routePathRef.current) > 80) {
+      lastRouteOriginRef.current = null;
+    }
+    void requestRoute();
+    mapRef.current?.panTo(current);
+  }, [mapReady, current, destReady, requestRoute, actualizarPasoActual]);
 
   return (
     <div className={`relative h-full w-full bg-slate-100 ${className}`} aria-label="Mapa de navegación">

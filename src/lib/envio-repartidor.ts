@@ -1,7 +1,5 @@
 import { mensajeWhatsAppEntregado, urlWhatsApp } from "@/lib/contact-links";
 import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
-import { distanciaMetros } from "@/lib/geo";
-import { parseCoord } from "@/lib/google-maps";
 import { estadoPedidoPorEnvio, patchPedidoAlEntregar } from "@/lib/pedido-flujo";
 import { enviarTicketSiPagado } from "@/lib/ticket-service";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -244,17 +242,7 @@ export async function registrarUbicacionRepartidor(
     }
   }
 
-  const dLat = parseCoord(envio.destino_lat);
-  const dLng = parseCoord(envio.destino_lng);
   let nuevoEstado = envio.estado;
-  if (
-    envio.estado === "en_camino" &&
-    dLat != null &&
-    dLng != null &&
-    distanciaMetros({ lat, lng }, { lat: dLat, lng: dLng }) < 200
-  ) {
-    nuevoEstado = "llegando";
-  }
 
   const { error: updErr } = await supabase
     .from("envios")

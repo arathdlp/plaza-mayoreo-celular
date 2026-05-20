@@ -41,6 +41,8 @@ type TrackingItem = {
   imagen_url: string | null;
 };
 
+type RealtimeStatus = "connecting" | "live" | "reconnecting" | "offline";
+
 const NavigationMap = dynamic(() => import("@/components/tracking/NavigationMap"), {
   ssr: false,
   loading: () => (
@@ -99,12 +101,15 @@ export default function TrackingPremiumView({
   const [stats, setStats] = useState<NavigationStats | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [segundosDesdeUpdate, setSegundosDesdeUpdate] = useState(0);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("connecting");
+  const [repartidorPos, setRepartidorPos] = useState<LatLng | null>(() => repartidorPosition(initialEnvio));
   const envioPrevRef = useRef(initialEnvio);
   const guestMode = Boolean(accessToken);
   const apiKeyAvailable = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
 
   const destino = useMemo(() => (envio ? resolveDestino(envio) : null), [envio]);
-  const repartidor = useMemo(() => repartidorPosition(envio), [envio]);
+  const envioPos = useMemo(() => repartidorPosition(envio), [envio]);
+  const repartidor = repartidorPos ?? envioPos;
   const hasDestinoCoords =
     parseCoord(envio?.destino_lat) != null && parseCoord(envio?.destino_lng) != null;
   const canShowMap = apiKeyAvailable && Boolean(destino) && (hasDestinoCoords || Boolean(direccionEntrega?.trim()));
@@ -126,6 +131,10 @@ export default function TrackingPremiumView({
   }, [envio?.repartidor_telefono, clienteNombre, pedidoId]);
 
   const onStats = useCallback((next: NavigationStats | null) => setStats(next), []);
+
+  useEffect(() => {
+    if (envioPos) setRepartidorPos(envioPos);
+  }, [envioPos]);
 
   useEffect(() => {
     console.log("[TRACKING] Componente montado");
@@ -158,6 +167,17 @@ export default function TrackingPremiumView({
 
   useEffect(() => {
     if (!envio?.id) return;
+    let pollId: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    const applyEnvioUpdate = (next: EnvioRow) => {
+      const nextPos = repartidorPosition(next);
+      if (nextPos) setRepartidorPos(nextPos);
+      setEnvio((prev) => ({
+        ...next,
+        direccion_destino: prev?.direccion_destino ?? next.direccion_destino,
+      }));
+    };
+
     if (guestMode && accessToken) {
       const poll = async () => {
         try {
@@ -166,24 +186,19 @@ export default function TrackingPremiumView({
           );
           if (!res.ok) return;
           const json = (await res.json()) as { envio?: EnvioRow };
-          if (json.envio) {
-            setEnvio((prev) => ({
-              ...json.envio!,
-              direccion_destino: prev?.direccion_destino ?? json.envio!.direccion_destino,
-            }));
-          }
+          if (json.envio) applyEnvioUpdate(json.envio);
         } catch {
           /* reintento en el siguiente intervalo */
         }
       };
       void poll();
-      const id = setInterval(poll, REPARTIDOR_GPS_INTERVAL_MS);
-      return () => clearInterval(id);
+      pollId = setInterval(poll, REPARTIDOR_GPS_INTERVAL_MS);
     }
 
     const supabase = createClient();
     const channel = supabase
-      .channel(`envio-track-${envio.id}`)
+      // Requiere Supabase Dashboard -> Database -> Replication -> envios habilitado.
+      .channel(`envio-${envio.id}`)
       .on(
         "postgres_changes",
         {
@@ -193,24 +208,39 @@ export default function TrackingPremiumView({
           filter: `id=eq.${envio.id}`,
         },
         (payload) => {
+          console.log("[TRACKING] Realtime update:", payload.new);
           const row = mapEnvioFromDb(payload.new as EnvioDbRow);
-          setEnvio((prev) => ({
-            ...row,
-            direccion_destino: prev?.direccion_destino ?? row.direccion_destino,
-          }));
+          applyEnvioUpdate(row);
         },
       )
       .subscribe((status) => {
-        console.log("[TRACKING] Realtime:", status);
+        console.log("[TRACKING] Realtime status:", status);
+        if (status === "SUBSCRIBED") setRealtimeStatus("live");
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("reconnecting");
+        if (status === "CLOSED") {
+          setRealtimeStatus("reconnecting");
+          reconnectTimer = setTimeout(() => {
+            void channel.subscribe();
+          }, 3000);
+        }
       });
 
     return () => {
+      if (pollId) clearInterval(pollId);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       void supabase.removeChannel(channel);
+      setRealtimeStatus("offline");
     };
   }, [envio?.id, guestMode, accessToken, pedidoId]);
 
   const step = stats?.currentStep;
   const etaMinutes = stats ? Math.max(1, Math.round(stats.durationValue / 60)) : envio?.tiempo_estimado_minutos;
+  const liveBadge =
+    realtimeStatus === "live" && segundosDesdeUpdate <= 30
+      ? { text: "En vivo", dot: "bg-emerald-500 animate-pulse" }
+      : realtimeStatus === "reconnecting" || segundosDesdeUpdate <= 60
+        ? { text: "Reconectando...", dot: "bg-amber-400" }
+        : { text: "Sin señal", dot: "bg-red-500" };
 
   if (!envio) {
     return (
@@ -266,20 +296,10 @@ export default function TrackingPremiumView({
           ) : null}
           <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-sm">
             <span
-              className={`h-2 w-2 rounded-full ${
-                segundosDesdeUpdate <= 30
-                  ? "bg-emerald-500 animate-pulse"
-                  : segundosDesdeUpdate <= 60
-                    ? "bg-amber-400"
-                    : "bg-red-500"
-              }`}
+              className={`h-2 w-2 rounded-full ${liveBadge.dot}`}
               aria-hidden
             />
-            {segundosDesdeUpdate <= 30
-              ? "En vivo"
-              : segundosDesdeUpdate <= 60
-                ? "Reconectando..."
-                : "Sin señal"}
+            {liveBadge.text}
           </div>
           {canShowMap && repartidor ? (
             <NavigationMap
