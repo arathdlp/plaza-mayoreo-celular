@@ -5,7 +5,13 @@ type CookieRow = { name: string; value: string; options: CookieOptions };
 
 const PROTECTED_PREFIXES = ["/dashboard", "/pedidos", "/admin"] as const;
 
+/** Rastreo público con ?token= o sesión del dueño del pedido. */
+function isPublicTrackingPath(pathname: string) {
+  return /^\/pedidos\/\d+\/tracking\/?$/.test(pathname);
+}
+
 function isProtectedPath(pathname: string) {
+  if (isPublicTrackingPath(pathname)) return false;
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

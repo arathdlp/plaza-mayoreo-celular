@@ -1,12 +1,17 @@
-import TrackingView from "@/app/pedidos/[id]/tracking/TrackingView";
-import { ENVIOS_DB_SELECT, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
+import TrackingView from "@/components/tracking/TrackingView";
+import { loadPedidoTracking, pedidoTrackingHref } from "@/lib/pedido-tracking";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-type Props = { params: Promise<{ id: string }> };
+export const dynamic = "force-dynamic";
+
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -18,8 +23,57 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function PedidoTrackingPage({ params }: Props) {
+function SinEnvio({ pedidoId, signedIn }: { pedidoId: number; signedIn: boolean }) {
+  return (
+    <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-xl font-bold text-[#111827]">Sin envío asignado</h1>
+      <p className="mt-2 text-sm text-gray-600">
+        El pedido #{pedidoId} aún no tiene seguimiento activo.
+      </p>
+      {signedIn ? (
+        <Link href="/pedidos" className="mt-6 text-sm font-semibold text-[#0066FF] hover:underline">
+          Volver a mis pedidos
+        </Link>
+      ) : (
+        <Link href="/" className="mt-6 text-sm font-semibold text-[#0066FF] hover:underline">
+          Ir al inicio
+        </Link>
+      )}
+    </main>
+  );
+}
+
+function AccesoDenegado({ pedidoId, signedIn }: { pedidoId: number; signedIn: boolean }) {
+  return (
+    <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-xl font-bold text-[#111827]">No pudimos abrir el rastreo</h1>
+      <p className="mt-2 max-w-md text-sm text-gray-600">
+        Usa el enlace completo que te enviamos (incluye el código de seguimiento) o inicia sesión con la
+        cuenta que realizó el pedido #{pedidoId}.
+      </p>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        {!signedIn ? (
+          <Link
+            href={`/login?next=${encodeURIComponent(pedidoTrackingHref(pedidoId))}`}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#0066FF] px-6 text-sm font-semibold text-white"
+          >
+            Iniciar sesión
+          </Link>
+        ) : null}
+        <Link
+          href={signedIn ? "/pedidos" : "/"}
+          className="inline-flex h-11 items-center justify-center rounded-full border border-gray-200 px-6 text-sm font-semibold text-gray-800"
+        >
+          {signedIn ? "Mis pedidos" : "Inicio"}
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+export default async function PedidoTrackingPage({ params, searchParams }: Props) {
   const { id: raw } = await params;
+  const { token } = await searchParams;
   const pedidoId = Number.parseInt(raw, 10);
   if (!Number.isFinite(pedidoId) || pedidoId <= 0) notFound();
 
@@ -27,53 +81,32 @@ export default async function PedidoTrackingPage({ params }: Props) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/pedidos/${pedidoId}/tracking`);
 
-  const { data: pedido } = await supabase
-    .from("pedidos")
-    .select("id, direccion_entrega, clientes ( nombre, telefono )")
-    .eq("id", pedidoId)
-    .eq("cliente_id", user.id)
-    .maybeSingle();
-
-  if (!pedido) notFound();
-
-  const { data: envioRaw } = await supabase
-    .from("envios")
-    .select(ENVIOS_DB_SELECT)
-    .eq("pedido_id", pedidoId)
-    .maybeSingle();
-
-  if (!envioRaw) {
-    return (
-      <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-xl font-bold text-[#111827]">Sin envío asignado</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Este pedido aún no tiene seguimiento activo.
-        </p>
-        <Link href="/pedidos" className="mt-6 text-sm font-semibold text-[#0066FF] hover:underline">
-          Volver a mis pedidos
-        </Link>
-      </main>
-    );
-  }
-
-  const envio = mapEnvioFromDb(envioRaw as unknown as EnvioDbRow, {
-    direccionEntrega: pedido.direccion_entrega as string,
+  const result = await loadPedidoTracking(pedidoId, {
+    userId: user?.id,
+    token,
   });
 
-  const clientes = pedido.clientes as
-    | { nombre: string; telefono: string }
-    | { nombre: string; telefono: string }[]
-    | null;
-  const cli = Array.isArray(clientes) ? clientes[0] : clientes;
+  if (!result.ok) {
+    if (result.reason === "pedido_not_found") notFound();
+    if (result.reason === "no_envio") {
+      return <SinEnvio pedidoId={pedidoId} signedIn={Boolean(user)} />;
+    }
+    return <AccesoDenegado pedidoId={pedidoId} signedIn={Boolean(user)} />;
+  }
+
+  const { data } = result;
+  const guest = !user;
 
   return (
     <TrackingView
       pedidoId={pedidoId}
-      initialEnvio={envio}
-      clienteNombre={cli?.nombre}
-      clienteTelefono={cli?.telefono}
+      initialEnvio={data.envio}
+      clienteNombre={data.clienteNombre}
+      clienteTelefono={data.clienteTelefono}
+      accessToken={guest ? data.accessToken : undefined}
+      backHref={guest ? "/" : "/pedidos"}
+      backLabel={guest ? "← Inicio" : "← Mis pedidos"}
     />
   );
 }

@@ -23,6 +23,7 @@ import {
   mostrarEstadoPago,
 } from "@/lib/pedido-pago";
 import { ENVIOS_DB_COLUMNS, mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
+import { pedidoTrackingHref } from "@/lib/pedido-tracking";
 import type { EnvioRow, EstadoEnvio } from "@/types/envio";
 import { formatoPesos } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
@@ -181,14 +182,14 @@ function PedidoTarjeta({ pedido }: { pedido: PedidoRow }) {
       </div>
       {puedeRastrear ? (
         <Link
-          href={`/pedidos/${pedido.id}/tracking`}
+          href={pedidoTrackingHref(pedido.id, envio.repartidor_token)}
           className={`mt-4 flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold ${btnPrimary}`}
         >
           Rastrear pedido
         </Link>
       ) : envio && envioEstado === "entregado" ? (
         <Link
-          href={`/pedidos/${pedido.id}/tracking`}
+          href={pedidoTrackingHref(pedido.id, envio.repartidor_token)}
           className="mt-4 flex h-11 w-full items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
         >
           Ver entrega

@@ -62,7 +62,7 @@ export default function Hero() {
             Todo para tu
           </motion.span>
           <motion.span
-            className="mt-1 block bg-gradient-to-r from-[#0066FF] to-[#111827] bg-clip-text text-transparent"
+            className="mt-1 block text-[#0066FF]"
             style={{ fontWeight: 800 }}
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}

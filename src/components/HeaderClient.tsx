@@ -168,7 +168,7 @@ export default function HeaderClient({ isAdmin, profile }: HeaderClientProps) {
       >
         <Link
           href="/#inicio"
-          className="max-w-[11rem] shrink-0 truncate text-[0.9375rem] font-bold tracking-tight text-gray-900 transition-opacity hover:opacity-80 sm:max-w-none sm:text-base"
+          className="inline-flex max-w-[11rem] shrink-0 items-center truncate rounded-lg bg-[#0066FF] px-3 py-2 text-[0.8125rem] font-bold leading-tight tracking-tight text-white shadow-md shadow-[#0066FF]/25 transition-opacity hover:opacity-90 sm:max-w-none sm:px-4 sm:py-2 sm:text-sm"
         >
           Plaza Mayoreo del Celular
         </Link>

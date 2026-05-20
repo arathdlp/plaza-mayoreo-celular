@@ -12,6 +12,7 @@ import {
 } from "@/lib/envio-labels";
 import { mapEnvioFromDb, type EnvioDbRow } from "@/lib/envio-db";
 import { parseCoord, resolveDestino, type LatLng } from "@/lib/google-maps";
+import { REPARTIDOR_GPS_INTERVAL_MS } from "@/types/envio";
 import { createClient } from "@/lib/supabase/client";
 import { notificarCambioEnvio, solicitarPermisoNotificaciones } from "@/lib/tracking-push";
 import type { EnvioRow, EstadoEnvio, TipoEnvio } from "@/types/envio";
@@ -24,6 +25,10 @@ type Props = {
   initialEnvio: EnvioRow;
   clienteNombre?: string;
   clienteTelefono?: string;
+  /** Si está definido, actualiza por API (sin sesión Supabase). */
+  accessToken?: string;
+  backHref?: string;
+  backLabel?: string;
 };
 
 function coordsFromEnvio(envio: EnvioRow): LatLng | null {
@@ -38,11 +43,15 @@ export default function TrackingView({
   initialEnvio,
   clienteNombre,
   clienteTelefono,
+  accessToken,
+  backHref = "/pedidos",
+  backLabel = "← Mis pedidos",
 }: Props) {
   const reduceMotion = useReducedMotion();
   const [envio, setEnvio] = useState(initialEnvio);
   const [segundosDesdeUpdate, setSegundosDesdeUpdate] = useState(0);
   const envioPrevRef = useRef(initialEnvio);
+  const guestMode = Boolean(accessToken);
 
   const destino = useMemo(() => resolveDestino(envio), [envio]);
   const repartidor = useMemo(() => coordsFromEnvio(envio), [envio]);
@@ -84,6 +93,29 @@ export default function TrackingView({
   }, [envio, pedidoId]);
 
   useEffect(() => {
+    if (guestMode && accessToken) {
+      const poll = async () => {
+        try {
+          const res = await fetch(
+            `/api/pedidos/${pedidoId}/tracking?token=${encodeURIComponent(accessToken)}`,
+          );
+          if (!res.ok) return;
+          const json = (await res.json()) as { envio?: EnvioRow };
+          if (json.envio) {
+            setEnvio((prev) => ({
+              ...json.envio!,
+              direccion_destino: prev.direccion_destino,
+            }));
+          }
+        } catch {
+          /* reintento en el siguiente intervalo */
+        }
+      };
+      void poll();
+      const id = setInterval(poll, REPARTIDOR_GPS_INTERVAL_MS);
+      return () => clearInterval(id);
+    }
+
     const supabase = createClient();
     const channel = supabase
       .channel(`envio-track-${envio.id}`)
@@ -108,14 +140,14 @@ export default function TrackingView({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [envio.id]);
+  }, [envio.id, guestMode, accessToken, pedidoId]);
 
   if (entregado) {
     return (
       <div className="flex min-h-[100dvh] flex-col bg-gray-50">
         <header className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
-          <Link href="/pedidos" className="text-sm font-medium text-[#0066FF] hover:underline">
-            ← Mis pedidos
+          <Link href={backHref} className="text-sm font-medium text-[#0066FF] hover:underline">
+            {backLabel}
           </Link>
         </header>
         <DeliveryCelebration />
@@ -126,13 +158,13 @@ export default function TrackingView({
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#0a0a0f]">
       <header className="z-10 border-b border-white/10 bg-[#0a0a0f]/90 px-4 py-3 backdrop-blur-md sm:px-6">
-        <Link href="/pedidos" className="text-sm font-medium text-[#4d9fff] hover:underline">
-          ← Mis pedidos
+        <Link href={backHref} className="text-sm font-medium text-[#4d9fff] hover:underline">
+          {backLabel}
         </Link>
         <h1 className="mt-1 text-lg font-bold text-white">Pedido #{pedidoId}</h1>
       </header>
 
-      <div className="relative flex-1 min-h-[45vh]">
+      <div className="relative min-h-[45vh] flex-1">
         {tipo === "local" && repartidor ? (
           <div
             className={`absolute left-4 top-4 z-10 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md ${
@@ -225,7 +257,7 @@ export default function TrackingView({
           ) : null}
 
           {tipo === "local" ? (
-            <motion.div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               {telRepartidor ? (
                 <a
                   href={telRepartidor}
@@ -244,7 +276,7 @@ export default function TrackingView({
                   WhatsApp
                 </a>
               ) : null}
-            </motion.div>
+            </div>
           ) : null}
         </div>
       </motion.div>
