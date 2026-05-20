@@ -41,8 +41,8 @@ function createSupabaseAdmin() {
   if (!url || !serviceKey) {
     console.error(
       "Faltan variables en .env.local:\n" +
-        `  NEXT_PUBLIC_SUPABASE_URL${url ? " ✓" : " (vacía o ausente)"}\n` +
-        `  SUPABASE_SERVICE_ROLE_KEY${serviceKey ? " ✓" : " (vacía o ausente)"}\n\n` +
+        `  NEXT_PUBLIC_SUPABASE_URL${url ? " OK" : " (vacía o ausente)"}\n` +
+        `  SUPABASE_SERVICE_ROLE_KEY${serviceKey ? " OK" : " (vacía o ausente)"}\n\n` +
         "Formato recomendado (toda la key en una línea, con o sin comillas):\n" +
         '  SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...."\n\n' +
         "La service role key está en: Supabase → Project Settings → API → service_role",

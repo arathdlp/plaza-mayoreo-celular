@@ -184,7 +184,7 @@ export default function PedidosAdminCliente({
                           rel="noopener noreferrer"
                           className="mt-1 block text-xs font-semibold text-gray-600 hover:text-[#0066FF]"
                         >
-                          Ver tracking en vivo ↗
+                          Ver tracking en vivo
                         </a>
                       ) : null}
                       {mapaActivo && envio ? (

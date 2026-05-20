@@ -2,6 +2,7 @@
 
 import ScrollReveal from "@/components/ScrollReveal";
 import { motion, useReducedMotion } from "framer-motion";
+import { Star } from "lucide-react";
 
 const TESTIMONIOS = [
   {
@@ -49,8 +50,10 @@ export default function Testimonials() {
                 </span>
                 <div>
                   <p className="font-bold text-[#111827]">{t.nombre}</p>
-                  <p className="text-amber-500" aria-label="5 estrellas">
-                    ★★★★★
+                  <p className="flex gap-0.5 text-amber-500" aria-label="5 estrellas">
+                    {Array.from({ length: 5 }).map((_, star) => (
+                      <Star key={star} className="h-3.5 w-3.5 fill-current" />
+                    ))}
                   </p>
                 </div>
               </div>

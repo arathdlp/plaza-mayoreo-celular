@@ -1,4 +1,4 @@
-import TrackingView from "@/components/tracking/TrackingView";
+import TrackingPremiumView from "@/components/tracking/TrackingPremiumView";
 import { loadPedidoTracking, pedidoTrackingHref } from "@/lib/pedido-tracking";
 import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -99,14 +99,17 @@ export default async function PedidoTrackingPage({ params, searchParams }: Props
   const guest = !user;
 
   return (
-    <TrackingView
+    <TrackingPremiumView
       pedidoId={pedidoId}
       initialEnvio={data.envio}
       clienteNombre={data.clienteNombre}
       clienteTelefono={data.clienteTelefono}
+      total={data.total}
+      metodoPago={data.metodoPago}
+      direccionEntrega={data.direccionEntrega}
+      items={data.items}
       accessToken={guest ? data.accessToken : undefined}
       backHref={guest ? "/" : "/pedidos"}
-      backLabel={guest ? "← Inicio" : "← Mis pedidos"}
     />
   );
 }

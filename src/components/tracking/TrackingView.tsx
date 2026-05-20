@@ -173,9 +173,15 @@ export default function TrackingView({
                 : "bg-emerald-100 text-emerald-900"
             }`}
           >
+            <span
+              className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
+                segundosDesdeUpdate > 30 ? "bg-amber-400" : "bg-emerald-500"
+              }`}
+              aria-hidden
+            />
             {segundosDesdeUpdate > 30
-              ? "🟡 Conectando…"
-              : `🟢 Última actualización: hace ${segundosDesdeUpdate}s`}
+              ? "Conectando…"
+              : `Última actualización: hace ${segundosDesdeUpdate}s`}
           </div>
         ) : null}
         {tipo === "local" ? (
@@ -221,8 +227,8 @@ export default function TrackingView({
             animate={{ opacity: 1, y: 0 }}
             className="flex items-start gap-4"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0066FF]/10 text-2xl">
-              {tipo === "local" ? "🛵" : "📦"}
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0066FF]/10 text-xs font-semibold text-[#0066FF]">
+              {tipo === "local" ? "GPS" : "Caja"}
             </div>
             <div className="min-w-0 flex-1">
               {tipo === "local" && envio.repartidor_nombre ? (

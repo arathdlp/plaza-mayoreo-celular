@@ -1,6 +1,7 @@
 "use client";
 
 import { btnPrimary, btnSecondary } from "@/lib/design-system";
+import { FileText, Send } from "lucide-react";
 
 type Props = {
   pedidoId: number;
@@ -18,17 +19,19 @@ export default function PedidoTicketButtons({ pedidoId, ticketUrl }: Props) {
       <a
         href={downloadHref}
         download
-        className={`flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold ${btnPrimary}`}
+        className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnPrimary}`}
       >
-        📄 Descargar ticket
+        <FileText className="h-4 w-4" />
+        Descargar ticket
       </a>
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        className={`flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold ${btnSecondary}`}
+        className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold ${btnSecondary}`}
       >
-        📱 Enviar por WhatsApp
+        <Send className="h-4 w-4" />
+        Enviar por WhatsApp
       </a>
     </div>
   );

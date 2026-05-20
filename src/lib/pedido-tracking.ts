@@ -9,6 +9,15 @@ export type PedidoTrackingPayload = {
   envio: EnvioRow;
   clienteNombre?: string;
   clienteTelefono?: string;
+  total: number;
+  metodoPago: string | null;
+  direccionEntrega: string;
+  items: {
+    nombre: string;
+    cantidad: number;
+    precio_unitario: number;
+    imagen_url: string | null;
+  }[];
   /** Token de acceso en URL (invitados sin sesión). */
   accessToken?: string;
 };
@@ -26,7 +35,13 @@ function parseCliente(
 
 function buildPayload(
   pedidoId: number,
-  pedido: { direccion_entrega: string; clientes?: unknown },
+  pedido: {
+    direccion_entrega: string;
+    total?: number | string | null;
+    metodo_pago?: string | null;
+    clientes?: unknown;
+    pedido_items?: unknown;
+  },
   envioRaw: EnvioDbRow,
   accessToken?: string,
 ): PedidoTrackingPayload {
@@ -44,6 +59,29 @@ function buildPayload(
     envio,
     clienteNombre: nombre,
     clienteTelefono: telefono,
+    total:
+      typeof pedido.total === "string"
+        ? parseFloat(pedido.total)
+        : Number(pedido.total ?? 0),
+    metodoPago: pedido.metodo_pago ?? null,
+    direccionEntrega: pedido.direccion_entrega,
+    items: ((pedido.pedido_items ?? []) as {
+      cantidad: number;
+      precio_unitario: number | string;
+      productos: { nombre: string; imagen_url: string | null } | { nombre: string; imagen_url: string | null }[] | null;
+    }[]).map((item) => {
+      const producto = Array.isArray(item.productos) ? item.productos[0] : item.productos;
+      const precio =
+        typeof item.precio_unitario === "string"
+          ? parseFloat(item.precio_unitario)
+          : Number(item.precio_unitario);
+      return {
+        nombre: producto?.nombre?.trim() || "Producto",
+        cantidad: Number(item.cantidad),
+        precio_unitario: precio,
+        imagen_url: producto?.imagen_url ?? null,
+      };
+    }),
     accessToken: accessToken ?? envio.repartidor_token,
   };
 }
@@ -63,7 +101,7 @@ async function loadByToken(pedidoId: number, token: string): Promise<LoadPedidoT
 
   const { data: pedido } = await admin
     .from("pedidos")
-    .select("id, direccion_entrega, clientes ( nombre, telefono )")
+    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .maybeSingle();
 
@@ -81,7 +119,7 @@ async function loadByAdmin(pedidoId: number): Promise<LoadPedidoTrackingResult> 
 
   const { data: pedido } = await admin
     .from("pedidos")
-    .select("id, direccion_entrega, clientes ( nombre, telefono )")
+    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .maybeSingle();
 
@@ -106,7 +144,7 @@ async function loadByOwner(pedidoId: number, userId: string): Promise<LoadPedido
 
   const { data: pedido } = await supabase
     .from("pedidos")
-    .select("id, direccion_entrega, clientes ( nombre, telefono )")
+    .select("id, total, metodo_pago, direccion_entrega, clientes ( nombre, telefono ), pedido_items ( cantidad, precio_unitario, productos ( nombre, imagen_url ) )")
     .eq("id", pedidoId)
     .eq("cliente_id", userId)
     .maybeSingle();
@@ -121,25 +159,9 @@ async function loadByOwner(pedidoId: number, userId: string): Promise<LoadPedido
 
   if (!envioRaw) return { ok: false, reason: "no_envio" };
 
-  const { nombre, telefono } = parseCliente(
-    pedido.clientes as
-      | { nombre: string; telefono: string }
-      | { nombre: string; telefono: string }[]
-      | null,
-  );
-  const envio = mapEnvioFromDb(envioRaw as unknown as EnvioDbRow, {
-    direccionEntrega: pedido.direccion_entrega as string,
-  });
-
   return {
     ok: true,
-    data: {
-      pedidoId,
-      envio,
-      clienteNombre: nombre,
-      clienteTelefono: telefono,
-      accessToken: envio.repartidor_token,
-    },
+    data: buildPayload(pedidoId, pedido, envioRaw as unknown as EnvioDbRow),
   };
 }
 

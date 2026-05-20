@@ -47,7 +47,7 @@ function screenshotSvg(width: number, height: number, title: string, subtitle: s
 
 async function writePng(svg: string, filePath: string) {
   await sharp(Buffer.from(svg)).png().toFile(filePath);
-  console.log("✓", path.relative(process.cwd(), filePath));
+  console.log("OK", path.relative(process.cwd(), filePath));
 }
 
 async function main() {

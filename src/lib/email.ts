@@ -128,7 +128,7 @@ function emailLayout(content: string): string {
           </tr>
           <tr>
             <td style="padding:20px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#6b7280;">© ${new Date().getFullYear()} ${escapeHtml(STORE_NAME)}</p>
+              <p style="margin:0;font-size:12px;color:#6b7280;">Copyright ${new Date().getFullYear()} ${escapeHtml(STORE_NAME)}</p>
             </td>
           </tr>
         </table>

@@ -112,7 +112,7 @@ export default function Footer() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          © {year} Plaza Mayoreo del Celular. Todos los derechos reservados.
+          Copyright {year} Plaza Mayoreo del Celular. Todos los derechos reservados.
         </motion.p>
       </div>
     </footer>
