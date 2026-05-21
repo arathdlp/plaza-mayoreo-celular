@@ -3,6 +3,7 @@ import { enviarTicketSiPagado } from "@/lib/ticket-service";
 import { fetchMercadoPagoPayment } from "@/lib/mercadopago-payments";
 import { getMercadoPagoAccessToken } from "@/lib/mercadopago";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 type MpWebhookBody = {
@@ -30,6 +31,34 @@ function extractPaymentId(body: MpWebhookBody | null, url: URL): string | null {
   }
 
   return null;
+}
+
+function parseMercadoPagoSignature(xSignature: string): { ts?: string; hash?: string } {
+  return xSignature.split(",").reduce<{ ts?: string; hash?: string }>((acc, part) => {
+    const [key, value] = part.trim().split("=");
+    if (key === "ts") acc.ts = value;
+    if (key === "v1") acc.hash = value;
+    return acc;
+  }, {});
+}
+
+function isValidMercadoPagoSignature({
+  dataId,
+  hash,
+  requestId,
+  secret,
+  ts,
+}: {
+  dataId: string;
+  hash: string;
+  requestId: string;
+  secret: string;
+  ts: string;
+}): boolean {
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+  return hmac === hash;
 }
 
 async function processPaymentNotification(paymentId: string): Promise<void> {
@@ -104,6 +133,23 @@ async function processPaymentNotification(paymentId: string): Promise<void> {
 
 export async function POST(request: Request) {
   const url = new URL(request.url);
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  const xSignature = request.headers.get("x-signature");
+  const xRequestId = request.headers.get("x-request-id");
+  const dataId = url.searchParams.get("data.id");
+
+  if (xSignature && xRequestId && dataId) {
+    if (!secret) {
+      console.error("[MP webhook] MERCADOPAGO_WEBHOOK_SECRET no configurado");
+      return NextResponse.json({ error: "Webhook secret no configurado" }, { status: 500 });
+    }
+
+    const { ts, hash } = parseMercadoPagoSignature(xSignature);
+    if (!ts || !hash || !isValidMercadoPagoSignature({ dataId, hash, requestId: xRequestId, secret, ts })) {
+      return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
+    }
+  }
+
   let body: MpWebhookBody | null = null;
 
   try {
