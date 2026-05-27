@@ -1,9 +1,9 @@
 "use client";
 
-import { loadGoogleMaps, type LatLng } from "@/lib/google-maps";
-import { MARKER_DESTINO, MARKER_REPARTIDOR } from "@/lib/map-markers";
+import type { LatLng } from "@/lib/coords";
 import { MORELIA_CENTER } from "@/lib/envio-labels";
-import { useEffect, useRef } from "react";
+import Map, { Layer, Marker, Source } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 type Props = {
   destino: LatLng;
@@ -15,26 +15,6 @@ type Props = {
   repartidorPulsando?: boolean;
 };
 
-function makeMarker(
-  map: google.maps.Map,
-  position: LatLng,
-  iconUrl: string,
-  title: string,
-  zIndex: number,
-): google.maps.Marker {
-  return new google.maps.Marker({
-    map,
-    position,
-    title,
-    zIndex,
-    icon: {
-      url: iconUrl,
-      scaledSize: new google.maps.Size(44, 44),
-      anchor: new google.maps.Point(22, 22),
-    },
-  });
-}
-
 export default function TrackingMap({
   destino,
   repartidor,
@@ -43,114 +23,93 @@ export default function TrackingMap({
   interactive = true,
   repartidorPulsando = false,
 }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const destinoMarkerRef = useRef<google.maps.Marker | null>(null);
-  const repartidorMarkerRef = useRef<google.maps.Marker | null>(null);
-  const pulseMarkerRef = useRef<google.maps.Marker | null>(null);
-  const routePolylineRef = useRef<google.maps.Polyline | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      if (!containerRef.current || mapRef.current) return;
-      await loadGoogleMaps();
-      if (cancelled || !containerRef.current || mapRef.current) return;
-
-      const center = repartidor ?? destino ?? MORELIA_CENTER;
-      const map = new google.maps.Map(containerRef.current, {
-        center,
-        zoom: mini ? 13 : 14,
-        disableDefaultUI: mini,
-        gestureHandling: interactive ? "greedy" : "none",
-        zoomControl: !mini,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: !mini,
-        clickableIcons: false,
-      });
-      mapRef.current = map;
-
-      destinoMarkerRef.current = makeMarker(map, destino, MARKER_DESTINO, "Destino", 2);
-    }
-
-    void init();
-    return () => {
-      cancelled = true;
-      destinoMarkerRef.current?.setMap(null);
-      repartidorMarkerRef.current?.setMap(null);
-      pulseMarkerRef.current?.setMap(null);
-      routePolylineRef.current?.setMap(null);
-      mapRef.current = null;
-    };
-  }, [mini, interactive]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    destinoMarkerRef.current?.setPosition(destino);
-
-    if (repartidor) {
-      if (!repartidorMarkerRef.current) {
-        repartidorMarkerRef.current = makeMarker(
-          map,
-          repartidor,
-          MARKER_REPARTIDOR,
-          "Repartidor",
-          3,
-        );
-        pulseMarkerRef.current = new google.maps.Marker({
-          map,
-          position: repartidor,
-          zIndex: 2,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: repartidorPulsando ? (mini ? 22 : 28) : mini ? 14 : 18,
-            fillColor: repartidorPulsando ? "#f59e0b" : "#0066FF",
-            fillOpacity: repartidorPulsando ? 0.35 : 0.2,
-            strokeColor: repartidorPulsando ? "#f59e0b" : "#0066FF",
-            strokeOpacity: repartidorPulsando ? 0.7 : 0.45,
-            strokeWeight: repartidorPulsando ? 3 : 2,
-          },
-        });
-      } else {
-        repartidorMarkerRef.current.setPosition(repartidor);
-        pulseMarkerRef.current?.setPosition(repartidor);
-      }
-
-      routePolylineRef.current?.setMap(null);
-      routePolylineRef.current = new google.maps.Polyline({
-        path: [repartidor, destino],
-        geodesic: true,
-        strokeColor: "#0066FF",
-        strokeOpacity: 0.85,
-        strokeWeight: mini ? 3 : 5,
-        map,
-      });
-
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(repartidor);
-      bounds.extend(destino);
-      map.fitBounds(bounds, mini ? 24 : 72);
-    } else {
-      repartidorMarkerRef.current?.setMap(null);
-      repartidorMarkerRef.current = null;
-      pulseMarkerRef.current?.setMap(null);
-      pulseMarkerRef.current = null;
-      routePolylineRef.current?.setMap(null);
-      routePolylineRef.current = null;
-      map.setCenter(destino);
-      map.setZoom(mini ? 13 : 14);
-    }
-  }, [destino, repartidor, mini, repartidorPulsando]);
+  const repartidorPosition = repartidor ?? MORELIA_CENTER;
+  const destinoLng = destino.lng;
+  const destinoLat = destino.lat;
+  const routeData = {
+    type: "Feature" as const,
+    properties: {},
+    geometry: {
+      type: "LineString" as const,
+      coordinates: [
+        [repartidorPosition.lng || -101.195, repartidorPosition.lat || 19.706],
+        [destinoLng, destinoLat],
+      ],
+    },
+  };
 
   return (
-    <div
-      ref={containerRef}
-      className={`h-full w-full bg-slate-100 ${mini ? "min-h-[120px]" : "min-h-[280px]"} ${className}`}
-      aria-label="Mapa de seguimiento"
-    />
+    <div className={`h-full w-full overflow-hidden bg-[#0b0f14] ${mini ? "min-h-[120px]" : "min-h-[280px]"} ${className}`}>
+      <Map
+        initialViewState={{
+          longitude: -101.195,
+          latitude: 19.706,
+          zoom: mini ? 12 : 14,
+        }}
+        style={{ width: "100%", height: "100%" }}
+        mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        interactive={interactive}
+        attributionControl={mini ? false : undefined}
+      >
+        <Source type="geojson" data={routeData}>
+          <Layer
+            id={mini ? "route-mini" : "route"}
+            type="line"
+            paint={{
+              "line-color": "#3B82F6",
+              "line-width": mini ? 2 : 3,
+              "line-dasharray": [2, 2],
+            }}
+          />
+        </Source>
+
+        <Marker
+          longitude={repartidorPosition.lng || -101.195}
+          latitude={repartidorPosition.lat || 19.706}
+          anchor="center"
+        >
+          <div
+            style={{
+              width: mini ? 34 : 44,
+              height: mini ? 34 : 44,
+              borderRadius: "50%",
+              backgroundColor: repartidorPulsando ? "#16A34A" : "#16A34A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "3px solid white",
+              boxShadow: "0 0 0 8px rgba(22,163,74,0.2)",
+              animation: "pulse 2s infinite",
+            }}
+            aria-label="Ubicación del repartidor"
+          >
+            <svg width={mini ? "14" : "18"} height={mini ? "14" : "18"} viewBox="0 0 24 24" fill="white" aria-hidden>
+              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+            </svg>
+          </div>
+        </Marker>
+
+        <Marker longitude={destinoLng} latitude={destinoLat} anchor="bottom">
+          <div
+            style={{
+              width: mini ? 30 : 36,
+              height: mini ? 30 : 36,
+              borderRadius: "50%",
+              backgroundColor: "#EF4444",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "3px solid white",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            }}
+            aria-label="Destino"
+          >
+            <svg width={mini ? "14" : "16"} height={mini ? "14" : "16"} viewBox="0 0 24 24" fill="white" aria-hidden>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+            </svg>
+          </div>
+        </Marker>
+      </Map>
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import ProductoImagen from "@/components/ProductoImagen";
 import CelularConstruccion, { mapCelularVisualEstado } from "@/components/tracking/CelularConstruccion";
 import EntregaCompletada from "@/components/tracking/EntregaCompletada";
+import TrackingMap from "@/components/tracking/TrackingMap";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { mensajeClienteARepartidor, urlWhatsApp } from "@/lib/contact-links";
@@ -28,7 +29,6 @@ import {
   Phone,
   Star,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,15 +41,6 @@ type TrackingItem = {
 };
 
 type RealtimeStatus = "connecting" | "live" | "reconnecting" | "offline";
-
-const NavigationMap = dynamic(() => import("@/components/tracking/NavigationMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full animate-pulse items-center justify-center bg-gray-100 px-6 text-center text-sm font-medium text-gray-500">
-      Obteniendo tu ubicación...
-    </div>
-  ),
-});
 
 type Props = {
   pedidoId: number;
@@ -104,14 +95,13 @@ export default function TrackingPremiumView({
   const [repartidorPos, setRepartidorPos] = useState<LatLng | null>(() => repartidorPosition(initialEnvio));
   const envioPrevRef = useRef(initialEnvio);
   const guestMode = Boolean(accessToken);
-  const apiKeyAvailable = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
 
   const destino = useMemo(() => (envio ? resolveDestino(envio) : null), [envio]);
   const envioPos = useMemo(() => repartidorPosition(envio), [envio]);
   const repartidor = repartidorPos ?? envioPos;
   const hasDestinoCoords =
     parseCoord(envio?.destino_lat) != null && parseCoord(envio?.destino_lng) != null;
-  const canShowMap = apiKeyAvailable && Boolean(destino) && (hasDestinoCoords || Boolean(direccionEntrega?.trim()));
+  const canShowMap = Boolean(destino) && (hasDestinoCoords || Boolean(direccionEntrega?.trim()));
   const estado = (envio?.estado ?? "pendiente") as EstadoEnvio;
   const visualCelular = mapCelularVisualEstado(pedidoEstado, estado);
   const metodoBadge = badgeMetodoPago(metodoPago);
@@ -138,9 +128,8 @@ export default function TrackingPremiumView({
   useEffect(() => {
     console.log("[TRACKING] Componente montado");
     console.log("[TRACKING] Envío:", envio);
-    console.log("[TRACKING] API Key disponible:", apiKeyAvailable);
     void solicitarPermisoNotificaciones();
-  }, [envio, apiKeyAvailable]);
+  }, [envio]);
 
   useEffect(() => {
     if (!envio) return;
@@ -309,11 +298,6 @@ export default function TrackingPremiumView({
         </section>
 
         <section className="relative h-[45vh] min-h-[300px] overflow-hidden border-y border-gray-200 bg-gray-100 sm:h-[50vh] sm:min-h-[360px]">
-          {!apiKeyAvailable ? (
-            <div className="absolute inset-x-4 top-4 z-10 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900 shadow-sm">
-              Falta configurar NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en Vercel.
-            </div>
-          ) : null}
           <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-sm">
             <span
               className={`h-2 w-2 rounded-full ${liveBadge.dot}`}
@@ -321,28 +305,13 @@ export default function TrackingPremiumView({
             />
             {liveBadge.text}
           </div>
-          {canShowMap && repartidor ? (
-            <NavigationMap
-              current={repartidor}
-              destination={destino!}
-              destinationAddress={direccionEntrega}
-              marker="bike"
-              onStats={onStats}
+          {canShowMap && destino ? (
+            <TrackingMap
+              destino={destino}
+              repartidor={repartidor}
+              repartidorPulsando={estado === "llegando"}
               className="h-full"
             />
-          ) : canShowMap ? (
-            <NavigationMap
-              current={null}
-              destination={destino!}
-              destinationAddress={direccionEntrega}
-              marker="bike"
-              onStats={onStats}
-              className="h-full"
-            />
-          ) : !apiKeyAvailable ? (
-            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
-              El mapa estará disponible cuando se configure la API key de Google Maps.
-            </div>
           ) : !hasDestinoCoords && !direccionEntrega?.trim() ? (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
               No hay dirección de entrega para mostrar el mapa.

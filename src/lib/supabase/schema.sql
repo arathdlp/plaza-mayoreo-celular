@@ -13,7 +13,7 @@ create extension if not exists "pgcrypto";
 -- productos.categoria:
 --   Pantalla | Bateria | Tapa Trasera | Placa de Carga | Accesorio | Celular
 -- pedidos.estado:
---   pendiente | preparando | enviado | entregado
+--   pendiente | preparando | enviado | entregado | cancelado
 
 -- ---------------------------------------------------------------------------
 -- 1. productos
@@ -89,7 +89,7 @@ create table if not exists public.pedidos (
   direccion_entrega text not null,
   created_at timestamptz not null default now(),
   constraint pedidos_estado_check check (
-    estado in ('pendiente', 'preparando', 'enviado', 'entregado')
+    estado in ('pendiente', 'preparando', 'enviado', 'entregado', 'cancelado')
   )
 );
 
@@ -98,6 +98,12 @@ comment on table public.pedidos is 'Órdenes de compra';
 create index if not exists pedidos_cliente_id_idx on public.pedidos (cliente_id);
 create index if not exists pedidos_estado_idx on public.pedidos (estado);
 create index if not exists pedidos_created_at_idx on public.pedidos (created_at desc);
+
+alter table public.pedidos drop constraint if exists pedidos_estado_check;
+alter table public.pedidos
+  add constraint pedidos_estado_check check (
+    estado in ('pendiente', 'preparando', 'enviado', 'entregado', 'cancelado')
+  );
 
 -- Checkout: método de pago (ejecutar en proyectos ya creados)
 alter table public.pedidos

@@ -22,6 +22,7 @@ function etiquetaEstado(e: string): string {
     preparando: "Preparando",
     enviado: "Enviado",
     entregado: "Entregado",
+    cancelado: "Cancelado",
   };
   return labels[e] ?? e;
 }
@@ -95,6 +96,31 @@ export default function PedidosAdminCliente({
     };
   }, []);
 
+  async function cancelarPedido(pedidoId: number) {
+    const confirmar = confirm("¿Cancelar este pedido? Esta acción no se puede deshacer.");
+    if (!confirmar) return;
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("pedidos")
+      .update({ estado: "cancelado" })
+      .eq("id", pedidoId);
+
+    if (error) {
+      console.error("[admin/pedidos] Error al cancelar pedido:", error.message);
+      alert("No se pudo cancelar el pedido. Intenta de nuevo.");
+      return;
+    }
+
+    setPedidos((prev) =>
+      prev.map((pedido) =>
+        pedido.id === pedidoId ? { ...pedido, estado: "cancelado" } : pedido,
+      ),
+    );
+    router.refresh();
+    alert("Pedido cancelado correctamente");
+  }
+
   return (
     <>
       {loadError ? (
@@ -110,7 +136,7 @@ export default function PedidosAdminCliente({
       ) : null}
 
       <div className="mt-10 overflow-x-auto rounded-2xl border border-gray-200 bg-white backdrop-blur-sm">
-        <table className="w-full min-w-[1280px] text-left text-sm">
+        <table className="w-full min-w-[1400px] text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-4 py-4">ID</th>
@@ -120,12 +146,13 @@ export default function PedidosAdminCliente({
               <th className="px-4 py-4">Estado</th>
               <th className="px-4 py-4">Envío / mapa</th>
               <th className="px-4 py-4">Pago</th>
+              <th className="px-4 py-4">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {pedidos.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-14 text-center text-gray-500">
+                <td colSpan={8} className="px-4 py-14 text-center text-gray-500">
                   No hay pedidos registrados todavía.
                 </td>
               </tr>
@@ -195,6 +222,19 @@ export default function PedidosAdminCliente({
                     </td>
                     <td className="px-4 py-4">
                       <PagoBadges metodoPago={p.metodo_pago} estadoPago={p.estado_pago} />
+                    </td>
+                    <td className="px-4 py-4">
+                      {p.estado !== "cancelado" && p.estado !== "entregado" ? (
+                        <button
+                          type="button"
+                          onClick={() => void cancelarPedido(p.id)}
+                          className="inline-flex h-9 items-center justify-center rounded-full border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                        >
+                          Cancelar pedido
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin acciones</span>
+                      )}
                     </td>
                   </tr>
                 );
