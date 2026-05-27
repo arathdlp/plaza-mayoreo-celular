@@ -100,22 +100,34 @@ export default function PedidosAdminCliente({
     const confirmar = confirm("¿Cancelar este pedido? Esta acción no se puede deshacer.");
     if (!confirmar) return;
 
+    const pedido = pedidos.find((p) => p.id === pedidoId);
+    console.log("Cancelar pedido — estado actual:", pedido?.estado, "id:", pedidoId);
+
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("pedidos")
       .update({ estado: "cancelado" })
-      .eq("id", pedidoId);
+      .eq("id", pedidoId)
+      .select("id, estado");
+
+    console.log("Error cancelar:", error);
+    console.log("PedidoId:", pedidoId);
+    console.log("Respuesta cancelar:", data);
 
     if (error) {
-      console.error("[admin/pedidos] Error al cancelar pedido:", error.message);
-      alert("No se pudo cancelar el pedido. Intenta de nuevo.");
+      alert("Error: " + error.message);
+      return;
+    }
+
+    if (!data?.length) {
+      alert(
+        "Error: no se actualizó ningún pedido. Revisa la consola (F12): suele ser permisos RLS o que tu usuario no tenga is_admin en Supabase.",
+      );
       return;
     }
 
     setPedidos((prev) =>
-      prev.map((pedido) =>
-        pedido.id === pedidoId ? { ...pedido, estado: "cancelado" } : pedido,
-      ),
+      prev.map((p) => (p.id === pedidoId ? { ...p, estado: "cancelado" } : p)),
     );
     router.refresh();
     alert("Pedido cancelado correctamente");
