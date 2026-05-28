@@ -471,7 +471,6 @@ export default function RepartidorView() {
 
     intervalRef.current = setInterval(tick, INTERVAL_MS);
     tick();
-    console.log("[REPARTIDOR] watchPosition activo");
   }, [applyPosition, sendUbicacion]);
 
   const requestCurrentPosition = useCallback(() => {
@@ -483,11 +482,9 @@ export default function RepartidorView() {
     }
     setGeoError(null);
     setGpsPermission("pending");
-    console.log("[REPARTIDOR] Solicitando permiso de geolocalización");
     startTracking();
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        console.log("[REPARTIDOR] Ubicación obtenida:", p.coords.latitude, p.coords.longitude);
         applyPosition(p);
         setGeoError(null);
         setGpsPermission("granted");
@@ -565,13 +562,6 @@ export default function RepartidorView() {
   useEffect(() => {
     if (ctx) ctxRef.current = ctx;
   }, [ctx]);
-
-  useEffect(() => {
-    console.log("[REPARTIDOR] Componente montado");
-    console.log("[REPARTIDOR] Envío:", envio);
-    console.log("[REPARTIDOR] Token:", token);
-    console.log("[REPARTIDOR] API Key disponible:", apiKeyAvailable);
-  }, [envio, token, apiKeyAvailable]);
 
   useEffect(() => {
     const flushPending = () => {

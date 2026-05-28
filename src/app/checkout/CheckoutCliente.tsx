@@ -132,8 +132,6 @@ export default function CheckoutCliente() {
       lineas: lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad })),
     });
 
-    console.log("[checkout] crearPedido result", result);
-
     if (!result.ok) {
       setSubmitting(false);
       setError(result.error);

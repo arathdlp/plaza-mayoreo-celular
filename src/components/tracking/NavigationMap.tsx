@@ -17,7 +17,6 @@ import { Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const LOG_PREFIX = "[REPARTIDOR]";
 const MAP_ERROR_PREFIX = "[MAP ERROR]";
 
 type Props = {
@@ -314,7 +313,6 @@ export default function NavigationMap({
         map.addListener("dragstart", () => setSiguiendoRepartidor(false));
         map.addListener("zoom_changed", () => setSiguiendoRepartidor(false));
         mapRef.current = map;
-        console.log(`${LOG_PREFIX} Mapa cargado`);
         setMapReady(true);
       } catch (err) {
         console.error(`${MAP_ERROR_PREFIX} Error al cargar mapa`, err);
@@ -379,14 +377,12 @@ export default function NavigationMap({
       resolvingDestRef.current = true;
 
       try {
-        console.log(`${LOG_PREFIX} Geocodificando destino:`, addressKey);
         const geo = await geocodeAddress(addressKey);
         if (cancelled) return;
 
         if (geo) {
           destinationRef.current = geo;
           setDestReady(true);
-          console.log(`${LOG_PREFIX} Destino resuelto`, geo);
         } else {
           console.warn(`${MAP_ERROR_PREFIX} Geocoding falló para destino`);
           setRouteError("No se pudo calcular la ruta. Verificar dirección del cliente.");
@@ -577,7 +573,6 @@ export default function NavigationMap({
     const requestId = routeRequestIdRef.current + 1;
     routeRequestIdRef.current = requestId;
     lastRouteOriginRef.current = origin;
-    console.log(`${LOG_PREFIX} Routes API computeRoutes`, { origin, dest });
 
     try {
       setRouteError(null);
@@ -612,7 +607,6 @@ export default function NavigationMap({
       lastStatsRef.current = stats;
       onStatsRef.current?.(stats);
       setRouteError(null);
-      console.log(`${LOG_PREFIX} Ruta calculada con Routes API, pasos:`, steps.length);
 
       if (!followCurrent) {
         const bounds = new google.maps.LatLngBounds();
@@ -661,7 +655,6 @@ export default function NavigationMap({
 
     if (stepIndexRef.current !== nextIndex) {
       stepIndexRef.current = nextIndex;
-      console.log(`${LOG_PREFIX} Paso actual`, nextIndex + 1);
     }
 
     const currentStep = parsed[nextIndex];

@@ -126,14 +126,11 @@ export default function TrackingPremiumView({
   }, [envioPos]);
 
   useEffect(() => {
-    console.log("[TRACKING] Componente montado");
-    console.log("[TRACKING] Envío:", envio);
     void solicitarPermisoNotificaciones();
   }, [envio]);
 
   useEffect(() => {
     if (!envio) return;
-    console.log("[TRACKING] Estado envío:", envio.estado, "pedido:", pedidoEstado);
     if (!envioPrevRef.current) {
       envioPrevRef.current = envio;
       return;
@@ -196,13 +193,11 @@ export default function TrackingPremiumView({
           filter: `id=eq.${envio.id}`,
         },
         (payload) => {
-          console.log("[TRACKING] Realtime update:", payload.new);
           const row = mapEnvioFromDb(payload.new as EnvioDbRow);
           applyEnvioUpdate(row);
         },
       )
       .subscribe((status) => {
-        console.log("[TRACKING] Realtime status:", status);
         if (status === "SUBSCRIBED") setRealtimeStatus("live");
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("reconnecting");
         if (status === "CLOSED") {

@@ -59,13 +59,6 @@ async function authorizeEnvioAccess(
 
   const row = data as unknown as EnvioDbRow;
   const token = opts.token?.trim();
-  console.log("[API UBICACION] Envío encontrado:", {
-    id: row.id,
-    estado: row.estado,
-    hasStoredToken: Boolean(row.token),
-    tokenMatches: Boolean(token && row.token === token),
-    repartidorMatches: Boolean(opts.repartidorId && row.repartidor_id === opts.repartidorId),
-  });
 
   if (token && row.token === token) {
     return { ok: true, row };
@@ -226,7 +219,6 @@ export async function registrarUbicacionRepartidor(
   const envio = auth.envio;
 
   if (auth.envio.estado === "entregado") {
-    console.log("[API UBICACION] Ignorada porque el envío ya fue entregado", { envioId });
     return { ok: true as const, estado: auth.envio.estado, ignored: true };
   }
 

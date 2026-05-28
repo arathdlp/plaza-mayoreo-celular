@@ -3,7 +3,7 @@
 import type { EstadoEnvio } from "@/types/envio";
 import { motion, useReducedMotion } from "framer-motion";
 import { CheckCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type CelularVisualEstado =
   | "pendiente"
@@ -55,12 +55,6 @@ export default function CelularConstruccion({ visualEstado, className = "" }: Pr
   const [devEstado, setDevEstado] = useState<CelularVisualEstado | null>(null);
   const active = devEstado ?? visualEstado;
   const rank = stageRank(active);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("[TRACKING] CelularConstruccion estado:", active);
-    }
-  }, [active]);
 
   const blue = (min: number) => (rank >= min ? BLUE : PENDING);
   const fillBlue = (min: number, alpha = "18") => (rank >= min ? `${BLUE}${alpha}` : "transparent");

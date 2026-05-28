@@ -110,7 +110,6 @@ export default function ProductosCatalog({
     const timer = setTimeout(async () => {
       setBuscando(true);
       setSearchError(null);
-      console.log("[SEARCH] query:", searchTerm);
       const { data, error } = await supabase
         .from("productos")
         .select("id, marca, modelo, categoria, precio, imagen_url")
@@ -121,8 +120,6 @@ export default function ProductosCatalog({
         )
         .eq("activo", true)
         .limit(8);
-      console.log("[SEARCH] data:", data);
-      console.log("[SEARCH] error:", error);
 
       if (!cancelled) {
         if (error) {

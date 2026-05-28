@@ -31,11 +31,6 @@ export async function POST(
   }
 
   const accessToken = tokenFromRepartidorRequest(request, body);
-  console.log("[API UBICACION]", {
-    id: envioId,
-    token: accessToken,
-    hasToken: Boolean(accessToken),
-  });
   const session = await getRepartidorSession();
   const result = await registrarUbicacionRepartidor(
     envioId,
@@ -45,12 +40,10 @@ export async function POST(
     session?.id,
   );
   if (!result.ok) {
-    console.log("[API UBICACION] Rechazada:", result.error);
     return NextResponse.json(
       { error: result.error },
       { status: httpStatusRepartidorError(result.error) },
     );
   }
-  console.log("[API UBICACION] Guardada:", result);
   return NextResponse.json({ ok: true });
 }
